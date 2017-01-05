@@ -1,24 +1,23 @@
-let {Component, DOMRender} = window.Rv
+let {Component, DOMRender, ps} = window.Rv
 
+let id = 0
 let list= [
     {
         title: '今天的哈哈哈',
         content: "☺☺☺☺☺",
-        tag: 'today'
-    },
-    {
-        title: '本月的哈哈哈',
-        content: "☺☺☺☺☺",
-        tag: 'month'
-    },
-    {
-        title: '这周的哈哈哈',
-        content: "☺☺☺☺☺",
-        tag: 'date'
+        tag: 'today',
+        id: id++
     }
 ]
+
 class Name extends Component {
     template = `<span>Rv</span>`
+    componentWillUnMount(){
+        console.log('Name组件将要被卸载')
+    }
+    componentDidUnMount(){
+        console.log('Name组件已经被卸载')
+    }
 }
 
 class H1 extends Component {
@@ -32,6 +31,30 @@ class H1 extends Component {
             this.state += ' +1s'
         }
     }
+    componentWillMount(){
+        console.log('组件将要加载')
+    }
+    componentDidMount(){
+        ps.on('fuck', function(data){
+            alert(data)
+        })
+        console.log('组件加载成功')
+    }
+    componentWillUnMount(){
+        console.log('H1组件将要被卸载')
+    }
+    componentDidUnMount(){
+        console.log(ps.off('fuck'))
+        console.log('H1组件已经被卸载')
+    }
+}
+
+class Item extends Component {
+    template = `
+        <li>
+            {props.i + 1} : {props.item.title} : {props.item.content} <button onclick={props.del} data-index={props.item.id}>删除</button>
+        </li>
+    `
 }
 
 class App extends Component{
@@ -40,10 +63,12 @@ class App extends Component{
             <H1 width="100">
                 <span onClick={slotClick}>我是标题</span>
             </H1>
-            <input type="text" placeholder={name} value={input} v-if={true} onKeyUp={keyup} ref="input" /><button onClick={add}>提交</button>
-            <div bb="dd" v-click="11111" onclick={click} >{input}</div>
-            <ul v-for="x in showList">
-                <li>{$index + 1} : {x.title} : {x.content} <button onclick={del} data-index={$index}>删除</button></li>
+            <input type="text" placeholder={name} value={input} v-if={vIf} onKeyUp={keyup} ref="input" />
+            <input type="text" style="border: 20px solid red; " placeholder={name} value={input} v-if={!vIf} onKeyUp={keyup} ref="input" />
+            <button onClick={add}>提交</button>
+            <div style="line-height: 2;" v-click="11111" onclick={click} >{input}</div>
+            <ul v-for="(item i) in showList">
+                <Item i={i} item={item} del={del}></Item>
             </ul>
             <div>
                 <button class={currentFilter == 'today' && 'current' } onClick={filter.bind(this, 'today')}>今天</button>
@@ -54,10 +79,11 @@ class App extends Component{
             <p style={styles}>倒计时{time}秒 <button onClick={reset}>reset</button></p>
         </div>
     `
-    components = {H1}
+    components = {H1, Name, Item}
     data = {
         name: '西方哪个国家',
         input: '',
+        vIf: true,
         ll: {
             f: 1
         },
@@ -86,14 +112,15 @@ class App extends Component{
             this.input = event.target.value
         },
         del(event) {
-            this.list = this.list.filter((ele, index) => index != +event.target.dataset['index'])
+            this.list = this.list.filter(ele => ele.id != +event.target.dataset['index'])
             this.filter()
         },
         add(event){
             this.list.push({
                 title: '我是title',
                 tag: this.currentFilter,
-                content: this.refs.input.value
+                content: this.refs.input.value,
+                id: id++
             })
 
             this.input = this.refs.input.value = ''
@@ -110,7 +137,8 @@ class App extends Component{
             console.log(type)
         },
         click() {
-            alert("1111")
+            // ps.trigger('fuck', '哈哈哈哈')
+            this.vIf = !this.vIf
         },
         reset(){
             if (!this.time) {
@@ -133,6 +161,13 @@ class App extends Component{
     // 生命周期
     componentDidMount(){
         this.startTime()
+        ps.on('fuck:you', function(data){
+            alert('wocao')
+        })
+        // setTimeout(()=>{
+        //     ps.off('fuck:you')
+        //     ps.trigger('fuck', '啊哈哈哈哈哈哈哈')
+        // }, 1000)
     }
 }
 

@@ -56,21 +56,16 @@
 
 	var _window$Rv = window.Rv,
 	    Component = _window$Rv.Component,
-	    DOMRender = _window$Rv.DOMRender;
+	    DOMRender = _window$Rv.DOMRender,
+	    ps = _window$Rv.ps;
 
 
+	var id = 0;
 	var list = [{
 	    title: '今天的哈哈哈',
 	    content: "☺☺☺☺☺",
-	    tag: 'today'
-	}, {
-	    title: '本月的哈哈哈',
-	    content: "☺☺☺☺☺",
-	    tag: 'month'
-	}, {
-	    title: '这周的哈哈哈',
-	    content: "☺☺☺☺☺",
-	    tag: 'date'
+	    tag: 'today',
+	    id: id++
 	}];
 
 	var Name = function (_Component) {
@@ -89,6 +84,18 @@
 
 	        return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = Name.__proto__ || Object.getPrototypeOf(Name)).call.apply(_ref, [this].concat(args))), _this), _this.template = '<span>Rv</span>', _temp), _possibleConstructorReturn(_this, _ret);
 	    }
+
+	    _createClass(Name, [{
+	        key: 'componentWillUnMount',
+	        value: function componentWillUnMount() {
+	            console.log('Name组件将要被卸载');
+	        }
+	    }, {
+	        key: 'componentDidUnMount',
+	        value: function componentDidUnMount() {
+	            console.log('Name组件已经被卸载');
+	        }
+	    }]);
 
 	    return Name;
 	}(Component);
@@ -116,26 +123,73 @@
 	        }, _temp2), _possibleConstructorReturn(_this2, _ret2);
 	    }
 
+	    _createClass(H1, [{
+	        key: 'componentWillMount',
+	        value: function componentWillMount() {
+	            console.log('组件将要加载');
+	        }
+	    }, {
+	        key: 'componentDidMount',
+	        value: function componentDidMount() {
+	            ps.on('fuck', function (data) {
+	                alert(data);
+	            });
+	            console.log('组件加载成功');
+	        }
+	    }, {
+	        key: 'componentWillUnMount',
+	        value: function componentWillUnMount() {
+	            console.log('H1组件将要被卸载');
+	        }
+	    }, {
+	        key: 'componentDidUnMount',
+	        value: function componentDidUnMount() {
+	            console.log(ps.off('fuck'));
+	            console.log('H1组件已经被卸载');
+	        }
+	    }]);
+
 	    return H1;
 	}(Component);
 
-	var App = function (_Component3) {
-	    _inherits(App, _Component3);
+	var Item = function (_Component3) {
+	    _inherits(Item, _Component3);
 
-	    function App() {
+	    function Item() {
 	        var _ref3;
 
 	        var _temp3, _this3, _ret3;
 
-	        _classCallCheck(this, App);
+	        _classCallCheck(this, Item);
 
 	        for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
 	            args[_key3] = arguments[_key3];
 	        }
 
-	        return _ret3 = (_temp3 = (_this3 = _possibleConstructorReturn(this, (_ref3 = App.__proto__ || Object.getPrototypeOf(App)).call.apply(_ref3, [this].concat(args))), _this3), _this3.template = '\n        <div aa="cc" dd={ 0 ? "\u6211\u600E\u4E48\u77E5\u9053\u5462" : 22} ee ff ssss="1111" onClick={parentClick}>\n            <H1 width="100">\n                <span onClick={slotClick}>\u6211\u662F\u6807\u9898</span>\n            </H1>\n            <input type="text" placeholder={name} value={input} v-if={true} onKeyUp={keyup} ref="input" /><button onClick={add}>\u63D0\u4EA4</button>\n            <div bb="dd" v-click="11111" onclick={click} >{input}</div>\n            <ul v-for="x in showList">\n                <li>{$index + 1} : {x.title} : {x.content} <button onclick={del} data-index={$index}>\u5220\u9664</button></li>\n            </ul>\n            <div>\n                <button class={currentFilter == \'today\' && \'current\' } onClick={filter.bind(this, \'today\')}>\u4ECA\u5929</button>\n                <button class={currentFilter == \'date\' && \'current\' } onClick={filter.bind(this, \'date\')}>\u672C\u5468</button>\n                <button class={currentFilter == \'month\' && \'current\' } onClick={filter.bind(this, \'month\')}>\u672C\u6708</button>\n                <button class={currentFilter == \'all\' && \'current\' } onClick={filter.bind(this, \'all\')}>\u5168\u90E8</button>\n            </div>\n            <p style={styles}>\u5012\u8BA1\u65F6{time}\u79D2 <button onClick={reset}>reset</button></p>\n        </div>\n    ', _this3.components = { H1: H1 }, _this3.data = {
+	        return _ret3 = (_temp3 = (_this3 = _possibleConstructorReturn(this, (_ref3 = Item.__proto__ || Object.getPrototypeOf(Item)).call.apply(_ref3, [this].concat(args))), _this3), _this3.template = '\n        <li>\n            {props.i + 1} : {props.item.title} : {props.item.content} <button onclick={props.del} data-index={props.item.id}>\u5220\u9664</button>\n        </li>\n    ', _temp3), _possibleConstructorReturn(_this3, _ret3);
+	    }
+
+	    return Item;
+	}(Component);
+
+	var App = function (_Component4) {
+	    _inherits(App, _Component4);
+
+	    function App() {
+	        var _ref4;
+
+	        var _temp4, _this4, _ret4;
+
+	        _classCallCheck(this, App);
+
+	        for (var _len4 = arguments.length, args = Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
+	            args[_key4] = arguments[_key4];
+	        }
+
+	        return _ret4 = (_temp4 = (_this4 = _possibleConstructorReturn(this, (_ref4 = App.__proto__ || Object.getPrototypeOf(App)).call.apply(_ref4, [this].concat(args))), _this4), _this4.template = '\n        <div aa="cc" dd={ 0 ? "\u6211\u600E\u4E48\u77E5\u9053\u5462" : 22} ee ff ssss="1111" onClick={parentClick}>\n            <H1 width="100">\n                <span onClick={slotClick}>\u6211\u662F\u6807\u9898</span>\n            </H1>\n            <input type="text" placeholder={name} value={input} v-if={vIf} onKeyUp={keyup} ref="input" />\n            <input type="text" style="border: 20px solid red; " placeholder={name} value={input} v-if={!vIf} onKeyUp={keyup} ref="input" />\n            <button onClick={add}>\u63D0\u4EA4</button>\n            <div style="line-height: 2;" v-click="11111" onclick={click} >{input}</div>\n            <ul v-for="(item i) in showList">\n                <Item i={i} item={item} del={del}></Item>\n            </ul>\n            <div>\n                <button class={currentFilter == \'today\' && \'current\' } onClick={filter.bind(this, \'today\')}>\u4ECA\u5929</button>\n                <button class={currentFilter == \'date\' && \'current\' } onClick={filter.bind(this, \'date\')}>\u672C\u5468</button>\n                <button class={currentFilter == \'month\' && \'current\' } onClick={filter.bind(this, \'month\')}>\u672C\u6708</button>\n                <button class={currentFilter == \'all\' && \'current\' } onClick={filter.bind(this, \'all\')}>\u5168\u90E8</button>\n            </div>\n            <p style={styles}>\u5012\u8BA1\u65F6{time}\u79D2 <button onClick={reset}>reset</button></p>\n        </div>\n    ', _this4.components = { H1: H1, Name: Name, Item: Item }, _this4.data = {
 	            name: '西方哪个国家',
 	            input: '',
+	            vIf: true,
 	            ll: {
 	                f: 1
 	            },
@@ -149,7 +203,7 @@
 	            currentFilter: 'all',
 	            time: 3,
 	            left: 0
-	        }, _this3.method = {
+	        }, _this4.method = {
 	            slotClick: function slotClick() {
 	                alert('slotClick');
 	            },
@@ -163,8 +217,8 @@
 	                this.input = event.target.value;
 	            },
 	            del: function del(event) {
-	                this.list = this.list.filter(function (ele, index) {
-	                    return index != +event.target.dataset['index'];
+	                this.list = this.list.filter(function (ele) {
+	                    return ele.id != +event.target.dataset['index'];
 	                });
 	                this.filter();
 	            },
@@ -172,7 +226,8 @@
 	                this.list.push({
 	                    title: '我是title',
 	                    tag: this.currentFilter,
-	                    content: this.refs.input.value
+	                    content: this.refs.input.value,
+	                    id: id++
 	                });
 
 	                this.input = this.refs.input.value = '';
@@ -191,7 +246,8 @@
 	                console.log(type);
 	            },
 	            click: function click() {
-	                alert("1111");
+	                // ps.trigger('fuck', '哈哈哈哈')
+	                this.vIf = !this.vIf;
 	            },
 	            reset: function reset() {
 	                if (!this.time) {
@@ -200,14 +256,14 @@
 	                }
 	            },
 	            startTime: function startTime() {
-	                var _this4 = this;
+	                var _this5 = this;
 
 	                var interval = setInterval(function () {
-	                    if (_this4.time == 0) return clearInterval(interval);
-	                    _this4.time--;
+	                    if (_this5.time == 0) return clearInterval(interval);
+	                    _this5.time--;
 	                }, 1000);
 	            }
-	        }, _this3.events = {}, _temp3), _possibleConstructorReturn(_this3, _ret3);
+	        }, _this4.events = {}, _temp4), _possibleConstructorReturn(_this4, _ret4);
 	    }
 	    // 事件监听
 
@@ -218,6 +274,13 @@
 	        // 生命周期
 	        value: function componentDidMount() {
 	            this.startTime();
+	            ps.on('fuck:you', function (data) {
+	                alert('wocao');
+	            });
+	            // setTimeout(()=>{
+	            //     ps.off('fuck:you')
+	            //     ps.trigger('fuck', '啊哈哈哈哈哈哈哈')
+	            // }, 1000)
 	        }
 	    }]);
 

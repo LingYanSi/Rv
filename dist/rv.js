@@ -46,12 +46,9 @@
 
 	'use strict';
 
-	Object.defineProperty(exports, "__esModule", {
-	    value: true
-	});
-	exports.DOMRender = exports.Component = undefined;
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }(); // let tokenizer = require('./tokenizer')
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; // let tokenizer = require('./tokenizer')
 	// let parser = require('./parser')
 
 	// scope 作用域问题
@@ -61,21 +58,30 @@
 	// 为什么我们需要把数据处理写到jsx中
 	// 按理说jsx应该是只一个view层，只负责数据的渲染吗？
 
-	var _tokenizer = __webpack_require__(3);
+	// 数据监听
+
+	// 事件收发
+
+
+	var _tokenizer = __webpack_require__(5);
 
 	var _tokenizer2 = _interopRequireDefault(_tokenizer);
 
-	var _parser = __webpack_require__(2);
+	var _parser = __webpack_require__(3);
 
 	var _parser2 = _interopRequireDefault(_parser);
 
-	var _transform2 = __webpack_require__(4);
+	var _transform2 = __webpack_require__(6);
 
 	var _transform3 = _interopRequireDefault(_transform2);
 
-	var _observe = __webpack_require__(1);
+	var _observe = __webpack_require__(2);
 
 	var _observe2 = _interopRequireDefault(_observe);
+
+	var _pubsub = __webpack_require__(4);
+
+	var _pubsub2 = _interopRequireDefault(_pubsub);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -85,6 +91,7 @@
 
 	function DOMRender(Component, $parent) {
 	    var props = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
 
 	    var fuck = new Component();
 	    var data = fuck.data,
@@ -108,12 +115,13 @@
 	        }
 	    }
 
-	    ;['componentDidMount', 'componentWillMount', 'componentWillUnMount', 'componentUnMount'].forEach(function (key) {
+	    ;['componentDidMount', 'componentWillMount', 'componentWillUnMount', 'componentDidUnMount'].forEach(function (key) {
 	        var fun = fuck[key] || function () {};
 	        newState[key] = fun.bind(newState);
 	    });
 
 	    newState.props = props;
+	    newState.componentWillMount();
 
 	    var tokens = (0, _tokenizer2.default)(addQuote(template));
 	    var ast = (0, _parser2.default)(tokens);
@@ -122,7 +130,8 @@
 	        refs = _transform.refs,
 	        events = _transform.events,
 	        children = _transform.children,
-	        exprAtrributeQueue = _transform.exprAtrributeQueue;
+	        exprAtrributeQueue = _transform.exprAtrributeQueue,
+	        $ele = _transform.$ele;
 
 	    // 添加refs，组件不直接调用dom
 
@@ -130,14 +139,15 @@
 	    newState.refs = refs;
 
 	    // ele.appendChild(node)
-	    newState.componentDidMount && newState.componentDidMount();
+	    newState.componentDidMount();
 
-	    return {
+	    return _extends({}, newState, {
 	        refs: refs,
 	        events: events,
 	        children: children,
-	        exprAtrributeQueue: exprAtrributeQueue
-	    };
+	        exprAtrributeQueue: exprAtrributeQueue,
+	        $ele: $ele
+	    });
 	}
 
 	// 给标签内的字符串添加双引号，方便token解析
@@ -228,6 +238,11 @@
 	        value: function unmount(ID) {
 	            this.remove(ID);
 	        }
+	    }, {
+	        key: 'unmountAll',
+	        value: function unmountAll() {
+	            this.cache = [];
+	        }
 	    }]);
 
 	    return ExprAtrributeQueue;
@@ -241,19 +256,191 @@
 	    _classCallCheck(this, Component);
 
 	    console.log('初始化了');
-	    console.log(this);
 	};
 
 	window.Rv = {
 	    Component: Component,
 	    DOMRender: DOMRender,
+	    ps: new _pubsub2.default(),
 	    __id: 0
 	};
-	exports.Component = Component;
-	exports.DOMRender = DOMRender;
 
 /***/ },
 /* 1 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+	/**
+	 * [getWatchedVarible 获取可被监听到的变量]
+	 * @method getWatchedVarible
+	 * @param  {[type]}          str [description]
+	 * @return {[type]}              [description]
+	 */
+	function getWatchedVarible(str) {
+	    var current = 0;
+	    var token = [];
+
+	    function next() {
+	        return str[current++];
+	    }
+	    var char = next();
+
+	    while (current <= str.length) {
+
+	        var VARIABLE = /[a-zA-Z_$]/;
+	        if (VARIABLE.test(char)) {
+	            var chars = char;
+	            char = next();
+	            while (/[\w_$\.]/.test(char) && current <= str.length) {
+	                chars += char;
+	                char = next();
+	            }
+
+	            if (chars.endsWith('.')) {
+	                throw new Error(chars + ' should not endsWith .');
+	            }
+	            token.push({
+	                type: 'VARIABLE',
+	                value: chars
+	            });
+	            continue;
+	        }
+
+	        var DOUBLE_QUET = /"/;
+	        if (DOUBLE_QUET.test(char)) {
+	            var _chars = '';
+	            char = next();
+	            while (!/"/.test(char) && current <= str.length) {
+	                _chars += char;
+	                char = next();
+	            }
+	            char = next();
+	            token.push({
+	                type: 'STRING',
+	                value: _chars
+	            });
+	            continue;
+	        }
+
+	        var SINGLE_QUET = /'/;
+	        if (SINGLE_QUET.test(char)) {
+	            var _chars2 = '';
+	            char = next();
+	            while (!/'/.test(char) && current <= str.length) {
+	                _chars2 += char;
+	                char = next();
+	            }
+	            char = next();
+	            token.push({
+	                type: 'STRING',
+	                value: _chars2
+	            });
+	            continue;
+	        }
+
+	        var OPERATOR = /[\+\-\*\/\%\!\=?:]/;
+	        if (OPERATOR.test(char)) {
+	            token.push({
+	                type: 'OPERATOR',
+	                value: char
+	            });
+	            char = next();
+	            continue;
+	        }
+
+	        var AND = /&/;
+	        if (AND.test(char)) {
+	            char = next();
+	            if (/&/.test(char)) {
+	                char = next();
+	                token.push({
+	                    type: 'AND',
+	                    value: '&&'
+	                });
+	                continue;
+	            }
+	            throw new Error('the behind of & should be a &');
+	        }
+
+	        var OR = /\|/;
+	        if (OR.test(char)) {
+	            char = next();
+	            if (/\|/.test(char)) {
+	                char = next();
+	                token.push({
+	                    type: 'OR',
+	                    value: '||'
+	                });
+	                continue;
+	            }
+	            throw new Error('the behind of | should be a |');
+	        }
+
+	        var SPACE = /\s/;
+	        if (SPACE.test(char)) {
+	            char = next();
+	            continue;
+	        }
+
+	        var DOT = /\./;
+	        if (DOT.test(char)) {
+	            token.push({
+	                type: 'DOT',
+	                value: char
+	            });
+	            char = next();
+	            continue;
+	        }
+
+	        var NUMBER = /\d/;
+	        if (NUMBER.test(char)) {
+	            var _chars3 = char;
+	            char = next();
+	            while (/[\d\.]/.test(char)) {
+	                _chars3 += char;
+	                char = next();
+	            }
+	            token.push({
+	                type: 'NUMBER',
+	                value: _chars3
+	            });
+	            continue;
+	        }
+
+	        var EXPR_START = /\(/;
+	        if (EXPR_START.test(char)) {
+	            var _chars4 = '(';
+	            char = next();
+	            while (!/\)/.test(char) && current <= str.length) {
+	                _chars4 += char;
+	                char = next();
+	            }
+	            char = next();
+	            token.push({
+	                type: 'EXPR',
+	                value: _chars4 + ')'
+	            });
+	            continue;
+	        }
+
+	        throw new Error('cannot handle ' + str + ' char ' + char + ' at ' + current);
+	    }
+
+	    return token.filter(function (i) {
+	        return i.type == 'VARIABLE';
+	    }).map(function (i) {
+	        return i.value;
+	    });
+	}
+
+	exports.default = getWatchedVarible;
+
+/***/ },
+/* 2 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -389,7 +576,7 @@
 	exports.default = observe;
 
 /***/ },
-/* 2 */
+/* 3 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -721,7 +908,94 @@
 	 */
 
 /***/ },
-/* 3 */
+/* 4 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	/**
+	 * 一个简单的事件广播，接收系统
+	 * 需要这个玩意儿是为了，组件间通信，但是这么一来，组件的状态就似乎变得不可维护了
+	 * 因为，我不太确定触发这个事件，哪个地方会受到影响
+	 * 如此便有了flux/redux那一套东西，有一个统一的store，dispatch/action/reduce/store
+	 * 同样的store，同样的状态，看起来很美好
+	 */
+	var Pubsub = function () {
+	    function Pubsub() {
+	        _classCallCheck(this, Pubsub);
+
+	        this.listeners = {};
+	    }
+	    // 触发
+
+
+	    _createClass(Pubsub, [{
+	        key: 'trigger',
+	        value: function trigger() {
+	            var channel = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+	            var data = arguments[1];
+
+	            var listener = this.listeners[channel];
+	            listener && listener.forEach(function (callback) {
+	                return callback(data);
+	            });
+
+	            return this;
+	        }
+	        // 监听
+
+	    }, {
+	        key: 'on',
+	        value: function on() {
+	            var channel = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+	            var callback = arguments[1];
+
+	            var listener = this.listeners[channel] || [];
+	            listener.push(callback);
+	            this.listeners[channel] = listener;
+
+	            return this;
+	        }
+	        // 关闭
+
+	    }, {
+	        key: 'off',
+	        value: function off() {
+	            var channel = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+	            var callback = arguments[1];
+
+	            var listeners = this.listeners;
+	            var listener = listeners[channel];
+
+	            if (listener) {
+	                listeners[channel] = listener.filter(function (ele) {
+	                    // 如果callback不存在，就移除所有
+	                    return callback ? callback != ele : false;
+	                });
+	                if (!listeners[channel].length) {
+	                    delete listeners[channel];
+	                }
+	            }
+
+	            return this;
+	        }
+	    }]);
+
+	    return Pubsub;
+	}();
+
+	exports.default = Pubsub;
+
+/***/ },
+/* 5 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -881,7 +1155,7 @@
 	module.exports = tokenizer;
 
 /***/ },
-/* 4 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -894,15 +1168,13 @@
 
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-	var _watch = __webpack_require__(5);
+	var _getDependenceVarible = __webpack_require__(1);
 
-	var _watch2 = _interopRequireDefault(_watch);
+	var _getDependenceVarible2 = _interopRequireDefault(_getDependenceVarible);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
@@ -913,13 +1185,19 @@
 	 * @return {[type]}      [description]
 	 */
 	function transform(ast, state, listeners, $parent, components, props) {
+	    var IF = 'v-if';
+	    var FOR = 'v-for';
+	    var REF = 'ref';
 
-	    // 处理子元素
+	    var TYPE_TEXT_NODE = 'TEXT_NODE';
+	    var TYPE_ATTR = 'ATTR';
+
+	    // 处理子节点
 	    function handleChildren(array, $ele, node, ctx) {
-	        var VFOR = node.atrributes && node.atrributes['v-for'];
+	        var FORatrribute = node.atrributes && node.atrributes[FOR];
 
-	        if (VFOR) {
-	            return handleVFor(VFOR, $ele, array[0], ctx);
+	        if (FORatrribute) {
+	            return handleVFor(FORatrribute, $ele, array[0], ctx);
 	        }
 
 	        var eles = array.map(function (i) {
@@ -929,8 +1207,10 @@
 	        return $ele;
 	    }
 
-	    // 处理元素
+	    // 处理元素节点
 	    function handleElement(node, ctx, $parent) {
+	        var isVIF = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
+
 	        // 可以访问父节点
 	        var ele = void 0;
 	        var children = node.children,
@@ -942,19 +1222,26 @@
 	            // 处理子组件
 	            if (/^[A-Z]/.test(name)) {
 	                // throw new Error(`cannot handle tagName of ${name}`)
-	                var _props = Object.assign({}, getAttributes(atrributes), {
+	                var _props = Object.assign({}, getAttributes(atrributes, ctx), {
 	                    children: children,
 	                    ctx: ctx
 	                });
 	                var child = window.Rv.DOMRender(components[name], $parent, _props);
 	                // 子组件放在父组件的children中，方便卸载
 	                // 组件卸载：事件 + dom
-	                children.push(child);
+	                __children.push(child);
 	                return;
 	            }
+
 	            // 处理slot
 	            if (name == 'slot') {
 	                handleChildren(props.children, $parent, node, props.ctx);
+	                return;
+	            }
+
+	            // 处理if
+	            if (!isVIF && atrributes[IF]) {
+	                handleVIf(atrributes[IF], $parent, node, ctx);
 	                return;
 	            }
 
@@ -962,6 +1249,11 @@
 	            handleEvents(ele);
 	            handleAttributes(atrributes, ele, ctx);
 	            handleChildren(children, ele, node, [].concat(_toConsumableArray(ctx)));
+
+	            if (isVIF) {
+	                $parent.parentNode.insertBefore(ele, $parent);
+	                return ele;
+	            }
 	        } else {
 	            ele = handleTextNode(node, ctx);
 	        }
@@ -980,7 +1272,7 @@
 	        handleEvents($ele);
 	        if (type == 'Expr') {
 	            value = handleExpr(value, {
-	                type: 'TEXT_NODE',
+	                type: TYPE_TEXT_NODE,
 	                $ele: $ele
 	            }, ctx);
 	        }
@@ -989,49 +1281,99 @@
 	        return $ele;
 	    }
 
-	    function handleVFor(VFOR, $ele, node, ctx) {
+	    // 处理for循环
+	    function handleVFor(VFOR, $parent, node, ctx) {
 	        var value = VFOR.value;
 
-	        var arr = value.split(/\s+/).filter(function (i) {
-	            return i;
+	        var arr = value.split(/\sin\s/g).filter(function (i) {
+	            return i.trim();
 	        });
 	        var VAR = arr[0];
-	        var LIST = arr[arr.length - 1];
+	        var LIST = arr[1];
 
 	        function render(state) {
-	            $ele.innerHTML = '';
+	            $parent.innerHTML = '';
 
 	            var eles = state[LIST].map(function (i, index) {
-	                var _newCtx;
+	                var newCtx = {};
+	                if (/^\([^\)]+\)$/.test(VAR)) {
+	                    var _arr = VAR.slice(1, -1).split(/\s+/).filter(function (i) {
+	                        return i;
+	                    });
 
-	                var newCtx = (_newCtx = {}, _defineProperty(_newCtx, VAR, i), _defineProperty(_newCtx, '$index', index), _newCtx);
+	                    var itemName = _arr[0];
+	                    var indexName = _arr[1];
 
-	                return handleElement(node, [].concat(_toConsumableArray(ctx), [newCtx]), $ele);
+	                    itemName && (newCtx[itemName] = i);
+	                    indexName && (newCtx[indexName] = index);
+	                } else {
+	                    newCtx[VAR] = i;
+	                }
+
+	                return handleElement(node, [].concat(_toConsumableArray(ctx), [newCtx]), $parent);
 	            });
 
-	            return $ele;
+	            return $parent;
 	        }
 
 	        render(state);
 
-	        listeners.push($ele, $ele.__RVID, function (key, newValue, oldValue) {
+	        listeners.push($parent, $parent.__RVID, function (key, newValue, oldValue) {
 	            key = key.trim();
 	            var keys = key.split(',').filter(function (i) {
 	                return i;
 	            });
 	            if (keys[0] == LIST) {
 	                // 卸载元素上的事件
-	                unmountChildren($ele);
+	                _unmount.children($parent);
 	                render(state);
 	            }
 	        });
 	    }
 
+	    // 处理if指令，不管元素是否渲染，都会留下两个占位的注释节点
+	    function handleVIf(VIF, $parent, node, ctx) {
+	        // let
+	        var commentStart = document.createComment('if-placeholder-start');
+	        $parent.appendChild(commentStart);
+
+	        var commentEnd = document.createComment('if-placeholder-end');
+	        $parent.appendChild(commentEnd);
+
+	        function render() {
+	            // 如果comment节点后面是一个元素，就删除，然后把这个节点搞上去
+	            return handleElement(node, ctx, commentEnd, true);
+	        }
+
+	        // 删除下一个元素
+	        function deleteNextElement() {
+	            var $ele = commentStart.nextSibling;
+	            // 判断节点类型是不是元素节点
+	            if ($ele.nodeType === 1) {
+	                // 卸载元素
+	                _unmount.element($ele);
+	                commentStart.parentNode.removeChild($ele);
+	            }
+	        }
+
+	        var result = handleExpr(VIF.value, {
+	            attributeName: IF,
+	            $ele: $parent
+	        }, ctx, function (matched, newValue, oldValue) {
+	            // 监听数据变化
+	            deleteNextElement();
+	            newValue && render();
+	        });
+
+	        result && render();
+	    }
+
 	    // 处理表达式
-	    function handleExpr(expr, watchParams, ctx) {
+	    function handleExpr(expr, watchParams, ctx, callback) {
+	        var IS_LISTEN = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
+
 	        var param = Object.assign.apply(Object, [{}].concat(_toConsumableArray(ctx)));
 	        var a = new Function('param', '\n            with(param){\n                return ' + expr + '\n            }\n        ');
-	        watchParams.cacheAtrribute = a;
 
 	        var exprKeys = Analysis(expr);
 
@@ -1040,7 +1382,7 @@
 	            attributeName = watchParams.attributeName;
 
 
-	        listeners.push($ele, $ele.__RVID, function (key, newValue, oldValue) {
+	        IS_LISTEN && listeners.push($ele, $ele.__RVID, function (key, newValue, oldValue) {
 	            var keys = key.split(',').filter(function (i) {
 	                return i;
 	            }).join('.');
@@ -1051,27 +1393,32 @@
 	            if (!matched) return;
 
 	            var cacheAtrribute = watchParams.cacheAtrribute;
-	            // 更新文本节点
 
-	            if (type == 'TEXT_NODE') {
-	                var newCtx = ctx.slice(1);
-	                newCtx.unshift(state);
-	                var newParam = Object.assign.apply(Object, [{}].concat(_toConsumableArray(newCtx)));
-	                $ele.textContent = a(newParam);
+	            var newCtx = ctx.slice(1);
+	            newCtx.unshift(state);
+
+	            var newParam = Object.assign.apply(Object, [{}].concat(_toConsumableArray(newCtx)));
+	            var newAttribute = watchParams.cacheAtrribute = a(newParam);
+
+	            // 处理回调
+	            if (callback) {
+	                return callback(matched, newAttribute, cacheAtrribute);
+	            }
+
+	            // 更新文本节点
+	            if (type == TYPE_TEXT_NODE) {
+	                $ele.textContent = newAttribute;
 	            }
 
 	            // 更新属性
-	            if (type == 'ATTR') {
-	                var _newCtx2 = ctx.slice(1);
-	                _newCtx2.unshift(state);
-	                var _newParam = Object.assign.apply(Object, [{}].concat(_toConsumableArray(_newCtx2)));
-	                var _newValue = a(_newParam) || '';
-	                handleSpecialAttr(attributeName, _newValue, $ele, cacheAtrribute);
+	            if (type == TYPE_ATTR) {
+	                handleSpecialAttr(attributeName, newAttribute || '', $ele, cacheAtrribute);
 	            }
 	        });
 
 	        // 去监听数据
-	        return a(param);
+	        watchParams.cacheAtrribute = a(param);
+	        return watchParams.cacheAtrribute;
 	    }
 
 	    // expr : String
@@ -1081,22 +1428,33 @@
 	    // operator : + | - | * | / | && | || | ++ | -- | ! | !!!
 
 	    function Analysis(expr) {
-	        // return expr.replace(/"[^"]*"/g, "").replace(/[\-+]/g, '').split('.')
-	        return (0, _watch2.default)(expr);
+	        // 分析表达式，获取依赖被依赖属性数组，当数据发生变化的时候和数组进行比对，如果匹配成功就更新节点
+	        return (0, _getDependenceVarible2.default)(expr);
 	    }
 
-	    function getAttributes(atrributes) {
+	    // 获取所有属性的值
+	    function getAttributes(atrributes, ctx) {
 	        var atts = {};
 	        Object.keys(atrributes).map(function (key) {
 	            var v = atrributes[key];
-	            if (v) {
-	                var type = v.type,
-	                    value = v.value;
 
-	                value = value || '';
-	                if (type == 'String') {
-	                    atts[key] = value;
-	                }
+	            if (!v) return;
+
+	            var type = v.type,
+	                value = v.value;
+
+	            value = value || '';
+
+	            if (type == 'String') {
+	                atts[key] = value;
+	            }
+
+	            if (type == 'Expr') {
+	                // 处理事件表达式，但这里不用监听表达式
+	                atts[key] = handleExpr(value, {
+	                    type: TYPE_ATTR,
+	                    attributeName: key
+	                }, ctx, null, false);
 	            }
 	        });
 
@@ -1105,7 +1463,9 @@
 
 	    // 处理属性
 	    function handleAttributes(atrributes, $ele, ctx) {
-	        Object.keys(atrributes).map(function (key) {
+	        Object.keys(atrributes).filter(function (i) {
+	            return i != FOR && i != IF;
+	        }).map(function (key) {
 	            var v = atrributes[key];
 	            if (v) {
 	                var type = v.type,
@@ -1119,7 +1479,7 @@
 	                if (type == 'Expr') {
 	                    // 处理事件监听
 	                    value = handleExpr(value, {
-	                        type: 'ATTR',
+	                        type: TYPE_ATTR,
 	                        $ele: $ele,
 	                        attributeName: key
 	                    }, ctx);
@@ -1141,6 +1501,7 @@
 	            // 新增事件监听
 	            events.on(key.slice(2).toLowerCase(), $ele.__RVID, value);
 	        } else if (key == 'style') {
+	            // 初始样式
 	            var style = '';
 	            if (typeof value === 'undefined' ? 'undefined' : _typeof(value)) {
 	                for (var propertyName in value) {
@@ -1161,18 +1522,8 @@
 	            $ele.setAttribute(key, value);
 	        }
 
-	        // 处理v-if指令
-	        if (key == 'v-if' && !value) {
-	            $ele.style.display = 'none';
-	        }
-
-	        if (key == 'v-for') {
-	            var VAR = value.split(/\s/).filter(function (i) {
-	                return i;
-	            })[0];
-	        }
-
-	        if (key == 'ref') {
+	        // 处理ref
+	        if (key == REF) {
 	            refs[value] = $ele;
 	        }
 	    }
@@ -1187,26 +1538,96 @@
 	            return;
 	        }
 	        events = new Event($ele);
-	    }
+	        _unmount = new Unmount(listeners, events, state);
 
-	    // 卸载元素
-	    function unmountChildren($parent) {
-	        // 卸载属性
-	        listeners.unmountChildrenAttrs($parent);
-	        // 卸载事件
-	        events.unmountChildrenEvents($parent);
+	        $ele.__Rv = {
+	            isComponentRoot: true,
+	            listeners: listeners,
+	            events: events,
+	            unmount: function unmount() {
+	                _unmount.element($ele);
+	            },
+
+	            children: __children,
+	            component: state
+	        };
+	        __$ele = $ele;
 	    }
 
 	    var refs = {};
 	    var ctx = [state];
+	    var __$ele = void 0;
 	    var events = void 0;
-	    var children = [];
+	    var _unmount = void 0;
+	    var __children = [];
 
 	    handleChildren(ast.children, $parent, ast, ctx);
-	    return { refs: refs, events: events, children: children };
+	    return {
+	        refs: refs,
+	        events: events,
+	        children: __children,
+	        $ele: __$ele
+	    };
 	}
 
+	// 卸载组件
+
+	var Unmount = function () {
+	    function Unmount(listeners, events, component) {
+	        _classCallCheck(this, Unmount);
+
+	        this.listeners = listeners;
+	        this.events = events;
+	        this.component = component;
+	    }
+
+	    _createClass(Unmount, [{
+	        key: 'element',
+	        value: function element($parent) {
+	            if ($parent.__Rv && $parent.__Rv.isComponentRoot) {
+	                var _$parent$__Rv$compone = $parent.__Rv.component,
+	                    componentWillUnMount = _$parent$__Rv$compone.componentWillUnMount,
+	                    componentDidUnMount = _$parent$__Rv$compone.componentDidUnMount;
+	                // 组件将要卸载
+
+	                componentWillUnMount();
+
+	                $parent.__Rv.listeners.unmountAll();
+	                $parent.__Rv.events.unmountAll();
+
+	                // throw new Error()
+	                $parent.__Rv.children.forEach(function (component) {
+	                    component.$ele.__Rv.unmount();
+	                });
+	                // 组件已卸载
+	                componentDidUnMount();
+
+	                return;
+	            }
+	            if ($parent.__RVID) {
+	                this.listeners.unmount($parent.__RVID);
+	                // 卸载事件
+	                this.events.unmount($parent.__RVID);
+
+	                this.children($parent);
+	            }
+	        }
+	    }, {
+	        key: 'children',
+	        value: function children($parent) {
+	            var _this = this;
+
+	            $parent.children && [].concat(_toConsumableArray($parent.children)).forEach(function ($child) {
+	                _this.element($child);
+	            });
+	        }
+	    }]);
+
+	    return Unmount;
+	}();
+
 	// 事件
+
 
 	var Event = function () {
 	    function Event($ele) {
@@ -1251,7 +1672,7 @@
 	    }, {
 	        key: 'addEventToParent',
 	        value: function addEventToParent(type, id, callback) {
-	            var _this = this;
+	            var _this2 = this;
 
 	            if (this['__' + type]) return;
 
@@ -1266,7 +1687,7 @@
 
 	                var _loop = function _loop() {
 	                    var id = target.__RVID;
-	                    _this.cache[type].forEach(function (i) {
+	                    _this2.cache[type].forEach(function (i) {
 	                        if (i.id === id) {
 	                            cbs.push(i.callback);
 	                        }
@@ -1282,24 +1703,6 @@
 	                });
 	            });
 	        }
-	        // 卸载事件
-
-	    }, {
-	        key: 'unmountChildrenEvents',
-	        value: function unmountChildrenEvents($parent) {
-	            var _this2 = this;
-
-	            $parent.children && [].concat(_toConsumableArray($parent.children)).forEach(function ($child) {
-	                $child.__RVID && _this2.unmount($child.__RVID);
-	                _this2.unmountChildrenEvents($child);
-	            });
-	        }
-	    }, {
-	        key: 'unmountElementEvents',
-	        value: function unmountElementEvents($parent) {
-	            this.unmount($parent.__RVID);
-	            this.unmountChildrenEvents($parent);
-	        }
 	    }, {
 	        key: 'unmount',
 	        value: function unmount(ID) {
@@ -1310,6 +1713,11 @@
 	                    return ele.id != ID;
 	                });
 	            });
+	        }
+	    }, {
+	        key: 'unmountAll',
+	        value: function unmountAll() {
+	            this.cache = {};
 	        }
 	    }, {
 	        key: 'getTypeCache',
@@ -1324,180 +1732,6 @@
 	}();
 
 	exports.default = transform;
-
-/***/ },
-/* 5 */
-/***/ function(module, exports) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	    value: true
-	});
-	/**
-	 * [getWatchedVarible 获取可被监听到的变量]
-	 * @method getWatchedVarible
-	 * @param  {[type]}          str [description]
-	 * @return {[type]}              [description]
-	 */
-	function getWatchedVarible(str) {
-	    var current = 0;
-	    var token = [];
-
-	    function next() {
-	        return str[current++];
-	    }
-	    var char = next();
-
-	    while (current <= str.length) {
-
-	        var VARIABLE = /[a-zA-Z_$]/;
-	        if (VARIABLE.test(char)) {
-	            var chars = char;
-	            char = next();
-	            while (/[\w_$\.]/.test(char) && current <= str.length) {
-	                chars += char;
-	                char = next();
-	            }
-
-	            if (chars.endsWith('.')) {
-	                throw new Error(chars + ' should not endsWith .');
-	            }
-	            token.push({
-	                type: 'VARIABLE',
-	                value: chars
-	            });
-	            continue;
-	        }
-
-	        var DOUBLE_QUET = /"/;
-	        if (DOUBLE_QUET.test(char)) {
-	            var _chars = '';
-	            char = next();
-	            while (!/"/.test(char) && current <= str.length) {
-	                _chars += char;
-	                char = next();
-	            }
-	            char = next();
-	            token.push({
-	                type: 'STRING',
-	                value: _chars
-	            });
-	            continue;
-	        }
-
-	        var SINGLE_QUET = /'/;
-	        if (SINGLE_QUET.test(char)) {
-	            var _chars2 = '';
-	            char = next();
-	            while (!/'/.test(char) && current <= str.length) {
-	                _chars2 += char;
-	                char = next();
-	            }
-	            char = next();
-	            token.push({
-	                type: 'STRING',
-	                value: _chars2
-	            });
-	            continue;
-	        }
-
-	        var OPERATOR = /[\+\-\*\/\%\!\=?:]/;
-	        if (OPERATOR.test(char)) {
-	            token.push({
-	                type: 'OPERATOR',
-	                value: char
-	            });
-	            char = next();
-	            continue;
-	        }
-
-	        var AND = /&/;
-	        if (AND.test(char)) {
-	            char = next();
-	            if (/&/.test(char)) {
-	                char = next();
-	                token.push({
-	                    type: 'AND',
-	                    value: '&&'
-	                });
-	                continue;
-	            }
-	            throw new Error('the behind of & should be a &');
-	        }
-
-	        var OR = /\|/;
-	        if (OR.test(char)) {
-	            char = next();
-	            if (/\|/.test(char)) {
-	                char = next();
-	                token.push({
-	                    type: 'OR',
-	                    value: '||'
-	                });
-	                continue;
-	            }
-	            throw new Error('the behind of | should be a |');
-	        }
-
-	        var SPACE = /\s/;
-	        if (SPACE.test(char)) {
-	            char = next();
-	            continue;
-	        }
-
-	        var DOT = /\./;
-	        if (DOT.test(char)) {
-	            token.push({
-	                type: 'DOT',
-	                value: char
-	            });
-	            char = next();
-	            continue;
-	        }
-
-	        var NUMBER = /\d/;
-	        if (NUMBER.test(char)) {
-	            var _chars3 = char;
-	            char = next();
-	            while (/[\d\.]/.test(char)) {
-	                _chars3 += char;
-	                char = next();
-	            }
-	            token.push({
-	                type: 'NUMBER',
-	                value: _chars3
-	            });
-	            continue;
-	        }
-
-	        var EXPR_START = /\(/;
-	        if (EXPR_START.test(char)) {
-	            var _chars4 = '(';
-	            char = next();
-	            while (!/\)/.test(char) && current <= str.length) {
-	                _chars4 += char;
-	                char = next();
-	            }
-	            char = next();
-	            token.push({
-	                type: 'EXPR',
-	                value: _chars4 + ')'
-	            });
-	            continue;
-	        }
-
-	        throw new Error('cannot handle ' + str + ' char ' + char + ' at ' + current);
-	    }
-
-	    return token.filter(function (i) {
-	        return i.type == 'VARIABLE';
-	    }).map(function (i) {
-	        return i.value;
-	    });
-	}
-
-	exports.default = getWatchedVarible;
 
 /***/ }
 /******/ ]);

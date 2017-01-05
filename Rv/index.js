@@ -11,9 +11,14 @@
 import tokenizer from './tokenizer'
 import parser from './parser'
 import transform from './transform'
+
+// 数据监听
 import observe from './observe'
+// 事件收发
+import Pubsub from './pubsub'
 
 function DOMRender(Component, $parent, props = {}) {
+
     let fuck = new Component()
     let {data, method, template, components } = fuck
 
@@ -27,28 +32,31 @@ function DOMRender(Component, $parent, props = {}) {
         }
     }
 
-    ;['componentDidMount', 'componentWillMount', 'componentWillUnMount', 'componentUnMount'].forEach(key => {
+    ;['componentDidMount', 'componentWillMount', 'componentWillUnMount', 'componentDidUnMount'].forEach(key => {
         let fun = fuck[key] || function(){}
         newState[key] = fun.bind(newState)
     })
 
     newState.props = props
+    newState.componentWillMount();
 
     let tokens = tokenizer(addQuote(template))
     let ast = parser(tokens)
-    let {refs, events, children, exprAtrributeQueue} = transform(ast, newState, listeners, $parent, components, props)
+    let {refs, events, children, exprAtrributeQueue, $ele} = transform(ast, newState, listeners, $parent, components, props)
 
     // 添加refs，组件不直接调用dom
     newState.refs = refs
 
     // ele.appendChild(node)
-    newState.componentDidMount && newState.componentDidMount()
+    newState.componentDidMount();
 
     return {
+        ...newState,
         refs,
         events,
         children,
-        exprAtrributeQueue
+        exprAtrributeQueue,
+        $ele
     }
 }
 
@@ -117,6 +125,9 @@ class ExprAtrributeQueue {
     unmount(ID){
         this.remove(ID)
     }
+    unmountAll(){
+        this.cache = []
+    }
 }
 
 // 组件卸载，移除事件监听，移除
@@ -126,16 +137,12 @@ class ExprAtrributeQueue {
 class Component {
     constructor(){
         console.log('初始化了')
-        console.log(this)
     }
 }
 
 window.Rv = {
     Component,
     DOMRender,
+    ps: new Pubsub(),
     __id: 0
-}
-export {
-    Component,
-    DOMRender
 }
