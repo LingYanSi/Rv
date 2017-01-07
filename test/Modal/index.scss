@@ -1,0 +1,21 @@
+.modal-warp {
+    p {
+        text-align: center;
+        padding: 10px;
+    }
+
+    div.bottom {
+        display: flex;
+        border-top: 1px solid red;
+        button {
+            flex: 1;
+            line-height: 2;
+            border: 0;
+            background: none;
+            outline: none;
+        }
+        button + button {
+            border-left: 1px solid red;
+        }
+    }
+}

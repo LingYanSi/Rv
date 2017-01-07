@@ -1,6 +1,9 @@
 
 import getDependenceVarible from './getDependenceVarible'
+import Tick from './tick'
+import util from './util'
 
+let tick = new Tick()
 /**
  * [transform description]
  * @method transform
@@ -103,10 +106,10 @@ function transform(ast, state, listeners, $parent, components, props) {
         let VAR = arr[0]
         let LIST = arr[1]
 
-        function render(state){
+        function render(list){
             $parent.innerHTML = ''
 
-            let eles = state[LIST].map((i, index) => {
+            let eles = list.map((i, index) => {
                 let newCtx = {}
                 if (/^\([^\)]+\)$/.test(VAR)) {
                     let arr = VAR.slice(1, -1).split(/\s+/).filter(i => i)
@@ -126,18 +129,17 @@ function transform(ast, state, listeners, $parent, components, props) {
             return $parent
         }
 
-        render(state)
 
-        listeners.push($parent, $parent.__RVID, (key, newValue, oldValue)=>{
-            key = key.trim()
-            let keys = key.split(',').filter(i => i)
-            if(keys[0] == LIST) {
-                // 卸载元素上的事件
-                unmount.children($parent)
-                render(state)
-            }
+        let result = handleExpr(LIST, {
+            attributeName: FOR,
+            $ele: $parent
+        }, ctx, function(matched, newValue, oldValue){
+            // 监听数据变化
+            unmount.children($parent)
+            render(newValue)
         })
 
+        render(result)
     }
 
     // 处理if指令，不管元素是否渲染，都会留下两个占位的注释节点
@@ -172,7 +174,7 @@ function transform(ast, state, listeners, $parent, components, props) {
         }, ctx, function(matched, newValue, oldValue){
             // 监听数据变化
             deleteNextElement()
-            newValue && render()
+            newValue && render(newValue)
         })
 
         result && render()
@@ -191,33 +193,41 @@ function transform(ast, state, listeners, $parent, components, props) {
 
         let {$ele, type, attributeName} = watchParams
 
+        let timeout = null
         IS_LISTEN && listeners.push($ele, $ele.__RVID, (key, newValue, oldValue)=>{
             let keys = key.split(',').filter(i => i).join('.')
             let matched = exprKeys.some(i => keys.startsWith(i))
 
+            // 数据来了
             if (!matched) return
 
-            let {cacheAtrribute} = watchParams
-            let newCtx = ctx.slice(1)
-            newCtx.unshift(state)
+            // 数据更新后，惰性更新
+            clearTimeout(timeout)
+            timeout = setTimeout(()=>{
+                tick.push(()=>{
+                    let {cacheAtrribute} = watchParams
+                    let newCtx = ctx.slice(1)
+                    newCtx.unshift(state)
 
-            let newParam = Object.assign({}, ...newCtx)
-            let newAttribute = watchParams.cacheAtrribute = a(newParam)
+                    let newParam = Object.assign({}, ...newCtx)
+                    let newAttribute = watchParams.cacheAtrribute = a(newParam)
 
-            // 处理回调
-            if(callback) {
-                return callback(matched, newAttribute, cacheAtrribute)
-            }
+                    // 处理回调
+                    if(callback) {
+                        return callback(matched, newAttribute, cacheAtrribute)
+                    }
 
-            // 更新文本节点
-            if(type == TYPE_TEXT_NODE) {
-                $ele.textContent = newAttribute
-            }
+                    // 更新文本节点
+                    if(type == TYPE_TEXT_NODE) {
+                        $ele.textContent = newAttribute
+                    }
 
-            // 更新属性
-            if(type == TYPE_ATTR) {
-                handleSpecialAttr(attributeName, newAttribute || '', $ele, cacheAtrribute)
-            }
+                    // 更新属性
+                    if(type == TYPE_ATTR) {
+                        handleSpecialAttr(attributeName, newAttribute || '', $ele, cacheAtrribute)
+                    }
+                })
+            })
         })
 
         // 去监听数据
@@ -253,10 +263,21 @@ function transform(ast, state, listeners, $parent, components, props) {
 
             if (type == 'Expr') {
                 // 处理事件表达式，但这里不用监听表达式
-                atts[key] = handleExpr(value, {
+                let isSpread = false
+                if (value.startsWith('...')) {
+                    isSpread = true
+                    value = value.slice(3)
+                }
+                let result = handleExpr(value, {
                     type: TYPE_ATTR,
                     attributeName: key,
                 }, ctx, null, false)
+
+                if (isSpread) {
+                    atts = Object.assign({}, atts, result)
+                } else {
+                    atts[key] = result
+                }
             }
         })
 
@@ -299,37 +320,48 @@ function transform(ast, state, listeners, $parent, components, props) {
         if (key.startsWith('on')) {
             // 移除掉之前的事件
             events.off(key.slice(2).toLowerCase(), $ele.__RVID )
+
             // 新增事件监听
-            events.on(key.slice(2).toLowerCase(), $ele.__RVID, value)
+            util.isFunction(value) && events.on(key.slice(2).toLowerCase(), $ele.__RVID, value)
 
         } else if (key == 'style'){
             // 初始样式
-            let style = ''
-            if (typeof value) {
-                for (var propertyName in value) {
-                    if (value.hasOwnProperty(propertyName)) {
-                        // 处理驼峰形式的css
-                        let newPropertyName = propertyName.replace(/[A-Z]/g, char => {
-                            return '-' + char.toLowerCase()
-                        })
-                        style += `;${newPropertyName} : ${value[propertyName]}`
-                    }
-                }
-            } else {
-                style = value || ''
-            }
-
-            $ele.style.cssText += style
-
+            handleStyle($ele, value)
+        } else if (key == 'complete-style'){
+            // 初始样式
+            setTimeout(()=>{
+                $ele.clientWidth
+                handleStyle($ele, value)
+            }, 0)
+        }else  if (key == REF) {
+            refs[value] = $ele
         } else {
             $ele.setAttribute(key, value)
         }
+    }
 
-        // 处理ref
-        if (key == REF) {
-            refs[value] = $ele
+    function handleClass(){
+
+    }
+
+    // 处理样式
+    function handleStyle($ele, value = ''){
+        let style = ''
+        if (typeof value == 'object') {
+            for (var propertyName in value) {
+                if (value.hasOwnProperty(propertyName)) {
+                    // 处理驼峰形式的css
+                    let newPropertyName = propertyName.replace(/[A-Z]/g, char => {
+                        return '-' + char.toLowerCase()
+                    })
+                    style += `;${newPropertyName} : ${value[propertyName]}`
+                }
+            }
+        } else {
+            style = value || ''
         }
 
+        $ele.style.cssText += style
     }
 
     // 返回element list
@@ -344,16 +376,9 @@ function transform(ast, state, listeners, $parent, components, props) {
         events = new Event($ele)
         unmount = new Unmount(listeners, events, state)
 
-        $ele.__Rv = {
-            isComponentRoot: true,
-            listeners,
-            events,
-            unmount(){
-                unmount.element($ele)
-            },
-            children: __children,
-            component: state
-        }
+        $ele.__Rv = new RvElementHook(listeners, events, __children, state, ()=>{
+            unmount.element($ele)
+        })
         __$ele = $ele
     }
 
@@ -373,6 +398,25 @@ function transform(ast, state, listeners, $parent, components, props) {
     }
 }
 
+class RvElementHook {
+    constructor(listeners, events, children, state , unmount){
+        this.isComponentRoot = true
+        this.listeners = listeners
+        this.events = events
+        this.unmount = unmount
+        this.children = children,
+        this.component = state
+    }
+}
+
+// 卸载根组件
+function unmountElement($ele){
+    if($ele.__Rv instanceof RvElementHook) {
+        $ele.__Rv.unmount()
+        $ele.parentNode.removeChild($ele)
+    }
+}
+
 // 卸载组件
 class Unmount {
     constructor(listeners, events, component){
@@ -381,7 +425,7 @@ class Unmount {
         this.component = component
     }
     element($parent){
-        if ($parent.__Rv && $parent.__Rv.isComponentRoot) {
+        if ($parent.__Rv instanceof RvElementHook && $parent.__Rv.isComponentRoot) {
             let {componentWillUnMount, componentDidUnMount} = $parent.__Rv.component
             // 组件将要卸载
             componentWillUnMount()
@@ -484,4 +528,8 @@ class Event {
     }
 }
 
-export default transform
+export {
+    transform,
+    unmountElement,
+    tick
+}

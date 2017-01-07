@@ -1,5 +1,5 @@
 /**
- * [getWatchedVarible 获取可被监听到的变量]
+ * [getWatchedVarible 获取表达式内可被监听的变量]
  * @method getWatchedVarible
  * @param  {[type]}          str [description]
  * @return {[type]}              [description]

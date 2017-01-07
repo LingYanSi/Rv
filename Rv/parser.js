@@ -133,6 +133,11 @@ function parser(tokens) {
                  currentNode.atrributes[value] = undefined
                  return true
              }
+        } else if (AttributeSpread()) {
+             currentNode.atrributes['spread'] = {
+                 type: 'Expr',
+                 value
+             }
         }
 
         return false
@@ -142,6 +147,14 @@ function parser(tokens) {
     function AttributeName(){
         let {type, value} = token
         if (type == 'VAR') {
+            token = next()
+            return value
+        }
+    }
+
+    function AttributeSpread(){
+        let {type, value} = token
+        if (type == 'EXPR') {
             token = next()
             return value
         }

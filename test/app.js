@@ -1,4 +1,6 @@
-let {Component, DOMRender, ps} = window.Rv
+import Nine from './9'
+import Modal from './Modal'
+let {Component, DOMRender, ps, set, nextTick} = window.Rv
 
 let id = 0
 let list= [
@@ -49,12 +51,47 @@ class H1 extends Component {
     }
 }
 
+class Open extends Component {
+    template = `
+        <div>
+            <p>{props.msg}</p>
+            <button onClick={close}>关闭</button>
+        </div>
+    `
+    method = {
+        close(){
+            Modal.close()
+        }
+    }
+}
+
 class Item extends Component {
     template = `
-        <li>
+        <li style={styles} complete-style={complateStyle} onClick={fuck}>
             {props.i + 1} : {props.item.title} : {props.item.content} <button onclick={props.del} data-index={props.item.id}>删除</button>
         </li>
     `
+    data = {
+        styles: {
+            background: 'rgb(144, 203, 132)',
+            height: '50px',
+            transition: 'all .8s'
+        },
+        complateStyle: {
+            background: 'red',
+            height: '30px'
+        },
+    }
+    method = {
+        fuck(){
+            Modal.open('body', '', {
+                Body: Open,
+                props: {
+                    msg: 'test 组件传递是否正常'
+                }
+            })
+        }
+    }
 }
 
 class App extends Component{
@@ -76,21 +113,18 @@ class App extends Component{
                 <button class={currentFilter == 'month' && 'current' } onClick={filter.bind(this, 'month')}>本月</button>
                 <button class={currentFilter == 'all' && 'current' } onClick={filter.bind(this, 'all')}>全部</button>
             </div>
-            <p style={styles}>倒计时{time}秒 <button onClick={reset}>reset</button></p>
+            <p>倒计时{time}秒 <button onClick={reset}>reset</button></p>
+            <Nine></Nine>
+            <Modal></Modal>
         </div>
     `
-    components = {H1, Name, Item}
+    components = {H1, Name, Item, Nine, Modal}
     data = {
-        name: '西方哪个国家',
+        // name: '西方哪个国家',
         input: '',
         vIf: true,
         ll: {
             f: 1
-        },
-        styles: {
-            background: 'rgb(144, 203, 132)',
-            paddingLeft: '100px',
-            height: '200px'
         },
         list,
         showList: list,
@@ -133,8 +167,6 @@ class App extends Component{
             this.showList = this.list.filter(i => type != 'all' ? i.tag == type : 1)
 
             this.currentFilter = type
-
-            console.log(type)
         },
         click() {
             // ps.trigger('fuck', '哈哈哈哈')
@@ -151,6 +183,9 @@ class App extends Component{
                 if(this.time == 0 )
                     return clearInterval(interval)
                 this.time--
+                nextTick(()=>{
+                    console.log('wocao')
+                })
             }, 1000)
         }
     }
@@ -164,10 +199,18 @@ class App extends Component{
         ps.on('fuck:you', function(data){
             alert('wocao')
         })
-        // setTimeout(()=>{
-        //     ps.off('fuck:you')
-        //     ps.trigger('fuck', '啊哈哈哈哈哈哈哈')
-        // }, 1000)
+
+        this.$set(this, 'name', 'fuck you bithc')
+
+        setTimeout(()=>{
+            this.name = '哈哈哈'
+            console.log(this.refs.input.getAttribute('placeholder'))
+            // 此处有bug
+            nextTick(()=>{
+                console.log(this.refs.input.getAttribute('placeholder'))
+            })
+        }, 2000)
+
     }
 }
 

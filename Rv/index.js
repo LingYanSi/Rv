@@ -10,20 +10,23 @@
 
 import tokenizer from './tokenizer'
 import parser from './parser'
-import transform from './transform'
+import {transform, unmountElement, tick} from './transform'
 
 // 数据监听
-import observe from './observe'
+import {Observe, setDataProperty} from './observe'
 // 事件收发
 import Pubsub from './pubsub'
+import util from './util'
 
 function DOMRender(Component, $parent, props = {}) {
 
     let fuck = new Component()
     let {data, method, template, components } = fuck
 
-    let state = Object.assign({}, data, method)
+    let state = Object.assign({}, data)
     let {newState, listeners} = Ob(state)
+
+    newState = Object.assign(newState, method)
 
     // 更该function指向newState
     for (let key in newState) {
@@ -38,6 +41,8 @@ function DOMRender(Component, $parent, props = {}) {
     })
 
     newState.props = props
+    newState.$set = setDataProperty
+    newState.components = components
     newState.componentWillMount();
 
     let tokens = tokenizer(addQuote(template))
@@ -56,7 +61,7 @@ function DOMRender(Component, $parent, props = {}) {
         events,
         children,
         exprAtrributeQueue,
-        $ele
+        $ele,
     }
 }
 
@@ -78,11 +83,11 @@ function addQuote(template) {
 function Ob(state) {
     let listeners = new ExprAtrributeQueue()
 
-    let newState = observe(state, true, (...args) => {
+    let newState = new Observe(state, (...args) => {
         listeners.cache.forEach((listener, index) => {
             listener.callback(...args)
         })
-    })
+    }, true)
 
     return {newState, listeners}
 }
@@ -140,9 +145,21 @@ class Component {
     }
 }
 
+function unmount(ele) {
+    ele.__Rv
+}
+
+
 window.Rv = {
     Component,
     DOMRender,
+    Observe,
+    util,
+    nextTick(fn){
+        tick.pushNextTick(fn)
+    },
+    unmount: unmountElement,
+    set: setDataProperty,
     ps: new Pubsub(),
     __id: 0
 }

@@ -63,25 +63,25 @@
 	// 事件收发
 
 
-	var _tokenizer = __webpack_require__(5);
+	var _tokenizer = __webpack_require__(9);
 
 	var _tokenizer2 = _interopRequireDefault(_tokenizer);
 
-	var _parser = __webpack_require__(3);
+	var _parser = __webpack_require__(6);
 
 	var _parser2 = _interopRequireDefault(_parser);
 
-	var _transform2 = __webpack_require__(6);
+	var _transform2 = __webpack_require__(10);
 
-	var _transform3 = _interopRequireDefault(_transform2);
+	var _observe = __webpack_require__(5);
 
-	var _observe = __webpack_require__(2);
-
-	var _observe2 = _interopRequireDefault(_observe);
-
-	var _pubsub = __webpack_require__(4);
+	var _pubsub = __webpack_require__(7);
 
 	var _pubsub2 = _interopRequireDefault(_pubsub);
+
+	var _util = __webpack_require__(11);
+
+	var _util2 = _interopRequireDefault(_util);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -100,15 +100,15 @@
 	        components = fuck.components;
 
 
-	    var state = Object.assign({}, data, method);
+	    var state = Object.assign({}, data);
 
 	    var _Ob = Ob(state),
 	        newState = _Ob.newState,
 	        listeners = _Ob.listeners;
 
+	    newState = Object.assign(newState, method);
+
 	    // 更该function指向newState
-
-
 	    for (var key in newState) {
 	        if (newState.hasOwnProperty(key) && typeof newState[key] == 'function') {
 	            newState[key] = newState[key].bind(newState);
@@ -121,12 +121,14 @@
 	    });
 
 	    newState.props = props;
+	    newState.$set = _observe.setDataProperty;
+	    newState.components = components;
 	    newState.componentWillMount();
 
 	    var tokens = (0, _tokenizer2.default)(addQuote(template));
 	    var ast = (0, _parser2.default)(tokens);
 
-	    var _transform = (0, _transform3.default)(ast, newState, listeners, $parent, components, props),
+	    var _transform = (0, _transform2.transform)(ast, newState, listeners, $parent, components, props),
 	        refs = _transform.refs,
 	        events = _transform.events,
 	        children = _transform.children,
@@ -168,7 +170,7 @@
 	function Ob(state) {
 	    var listeners = new ExprAtrributeQueue();
 
-	    var newState = (0, _observe2.default)(state, true, function () {
+	    var newState = new _observe.Observe(state, function () {
 	        for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
 	            args[_key] = arguments[_key];
 	        }
@@ -176,7 +178,7 @@
 	        listeners.cache.forEach(function (listener, index) {
 	            listener.callback.apply(listener, args);
 	        });
-	    });
+	    }, true);
 
 	    return { newState: newState, listeners: listeners };
 	}
@@ -258,15 +260,30 @@
 	    console.log('初始化了');
 	};
 
+	function unmount(ele) {
+	    ele.__Rv;
+	}
+
 	window.Rv = {
 	    Component: Component,
 	    DOMRender: DOMRender,
+	    Observe: _observe.Observe,
+	    util: _util2.default,
+	    nextTick: function nextTick(fn) {
+	        _transform2.tick.pushNextTick(fn);
+	    },
+
+	    unmount: _transform2.unmountElement,
+	    set: _observe.setDataProperty,
 	    ps: new _pubsub2.default(),
 	    __id: 0
 	};
 
 /***/ },
-/* 1 */
+/* 1 */,
+/* 2 */,
+/* 3 */,
+/* 4 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -275,7 +292,7 @@
 	    value: true
 	});
 	/**
-	 * [getWatchedVarible 获取可被监听到的变量]
+	 * [getWatchedVarible 获取表达式内可被监听的变量]
 	 * @method getWatchedVarible
 	 * @param  {[type]}          str [description]
 	 * @return {[type]}              [description]
@@ -440,48 +457,37 @@
 	exports.default = getWatchedVarible;
 
 /***/ },
-/* 2 */
-/***/ function(module, exports) {
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	Object.defineProperty(exports, "__esModule", {
 	    value: true
 	});
+	exports.setDataProperty = exports.Observe = undefined;
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _util = __webpack_require__(11);
+
+	var _util2 = _interopRequireDefault(_util);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
-	// 监听数据变化
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } } // 监听数据变化
 	// vue会追踪数据变化，react不会，react在setState的时候，就会更新页面，
 	// 我们可以通过componentShouldUpdate方法来决定，是否更新组件
 	// 本着自动化的目标，我们也期望对数据依赖做出追踪，然后当state变化的时候，自动更新
 
-	// let obj = {name: 1}
-	//
-	// let value = '111'
-	// Object.defineProperty(obj , 'name', {
-	//     get(){
-	//         return value
-	//     },
-	//     set(newValue){
-	//         console.log('设置新值', newValue)
-	//         value = newValue
-	//     }
-	// })
+	// 主要是用来检验对象是不是一个被Observe过得对象
+	var RvDataHook = function RvDataHook(deepObserve, observeKey) {
+	    _classCallCheck(this, RvDataHook);
 
-	var util = {
-	    isFunction: function isFunction(arg) {
-	        return !!Object.prototype.toString.call(arg).match('Function');
-	    },
-	    isObject: function isObject(arg) {
-	        return !!Object.prototype.toString.call(arg).match('Object');
-	    },
-	    isArray: function isArray(arg) {
-	        return !!Object.prototype.toString.call(arg).match('Array');
-	    },
-	    isBoolean: function isBoolean(arg) {
-	        return !!Object.prototype.toString.call(arg).match('Boolean');
-	    }
+	    this.observeKey = observeKey;
+	    this.deepObserve = deepObserve;
 	};
 
 	// 监听数据
@@ -493,90 +499,170 @@
 	 * @param  {String}   [prevKey='']        [传递完整的key->key->key]
 	 * @return {[type]}                       [返回observe data]
 	 */
-	function observe(data) {
-	    var deepObserve = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-	    var callback = arguments[2];
-	    var prevKey = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : '';
 
-	    var newData = {};
-	    Object.keys(data).forEach(function (key) {
-	        if (data.hasOwnProperty(key)) {
-	            (function () {
-	                var value = data[key];
 
-	                var itemPrevKey = prevKey + key + ',';
-	                // 深度监听
+	var __RvHook__ = '__RvHook__';
+
+	var Observe = function () {
+	    function Observe(data, callback) {
+	        var deepObserve = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+
+	        _classCallCheck(this, Observe);
+
+	        _initialiseProps.call(this);
+
+	        this.callback = callback;
+	        var newData = this.observeObject(data, deepObserve);
+
+	        var observeKey = this.observeKey,
+	            triggerCallback = this.triggerCallback;
+	        // 埋一个不可枚举的属性，用来添加新属性
+
+	        Object.defineProperty(newData, __RvHook__, {
+	            get: function get() {
+	                return new RvDataHook(deepObserve, observeKey);
+	            },
+
+	            enumerable: false
+	        });
+	        return newData;
+	    }
+
+	    _createClass(Observe, [{
+	        key: 'observeObject',
+	        value: function observeObject(data) {
+	            var deepObserve = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+
+	            var _this = this;
+
+	            var prevKey = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '';
+	            var isSet = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
+
+	            var newData = {};
+	            Object.keys(data).forEach(function (key) {
+	                if (data.hasOwnProperty(key)) {
+	                    var value = data[key];
+	                    _this.observeKey(newData, key, value, deepObserve, prevKey, isSet);
+	                }
+	            });
+
+	            return newData;
+	        }
+	    }, {
+	        key: 'observeArray',
+	        value: function observeArray(array, deepObserve, itemPrevKey) {
+	            var that = this;
+	            array = [].concat(_toConsumableArray(array))
+	            // 监听数组push,pop,splice,reverse,shift,unshift
+	            ;['push', 'pop', 'splice', 'reverse', 'shift', 'unshift'].forEach(function (key) {
+	                Object.defineProperty(array, key, {
+	                    get: function get() {
+	                        return function () {
+	                            var _Array$prototype$key;
+
+	                            var oldValue = [].concat(_toConsumableArray(array));
+
+	                            for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+	                                args[_key] = arguments[_key];
+	                            }
+
+	                            var result = (_Array$prototype$key = Array.prototype[key]).call.apply(_Array$prototype$key, [array].concat(args));
+	                            that.triggerCallback(itemPrevKey, array, oldValue);
+	                            return result;
+	                        };
+	                    }
+	                });
+	            });
+
+	            return array;
+	        }
+	    }]);
+
+	    return Observe;
+	}();
+
+	/**
+	 * [setDataProperty 给已被Observe的对象，添加新属性，新属性可以被继续监控]
+	 * @method setDataProperty
+	 * @param  {Object}        [data={}] [description]
+	 * @param  {String}        [key='']  [description]
+	 * @param  {[type]}        value     [description]
+	 */
+
+
+	var _initialiseProps = function _initialiseProps() {
+	    var _this2 = this;
+
+	    this.triggerCallback = function (itemPrevKey, array, oldValue) {
+	        _this2.callback && _this2.callback(itemPrevKey, array, oldValue);
+	    };
+
+	    this.observeKey = function (newData, key, value) {
+	        var deepObserve = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
+	        var prevKey = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : '';
+	        var isSet = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : false;
+
+	        var itemPrevKey = prevKey + key + ',';
+	        // 深度监听
+	        if (deepObserve) {
+	            if (_util2.default.isObject(value)) {
+	                value = _this2.observeObject(value, deepObserve, itemPrevKey, isSet);
+	            } else if (_util2.default.isArray(value)) {
+	                value = _this2.observeArray(value, deepObserve, itemPrevKey, isSet);
+	            }
+	        }
+
+	        var that = _this2;
+	        Object.defineProperty(newData, key, {
+	            get: function get() {
+	                return value;
+	            },
+	            set: function set(newValue) {
+
+	                var oldValue = value;
+	                value = newValue;
+
+	                // 如果新值还是obj，那就继续监听
 	                if (deepObserve) {
-	                    if (util.isObject(value)) {
-	                        value = observe(value, deepObserve, callback, itemPrevKey);
-	                    } else if (util.isArray(value)) {
-	                        value = observeArray(value, deepObserve, callback, itemPrevKey);
+	                    if (_util2.default.isObject(value)) {
+	                        value = that.observeObject(value, deepObserve, itemPrevKey, true);
+	                    } else if (_util2.default.isArray(value)) {
+	                        value = that.observeArray(value, deepObserve, itemPrevKey, true);
 	                    }
 	                }
 
-	                Object.defineProperty(newData, key, {
-	                    get: function get() {
-	                        return value;
-	                    },
-	                    set: function set(newValue) {
+	                // 回调函数
+	                that.triggerCallback(itemPrevKey, newValue, oldValue);
+	            },
 
-	                        var oldValue = value;
-	                        value = newValue;
-
-	                        // 如果新值还是obj，那就继续监听
-	                        if (deepObserve) {
-	                            if (util.isObject(value)) {
-	                                value = observe(value, deepObserve, callback, itemPrevKey);
-	                            } else if (util.isArray(value)) {
-	                                value = observeArray(value, deepObserve, callback, itemPrevKey);
-	                            }
-	                        }
-
-	                        // 回调函数
-	                        callback && callback(itemPrevKey, newValue, oldValue);
-	                    },
-
-	                    enumerable: true
-	                });
-	            })();
-	        }
-	    });
-
-	    return newData;
-	}
-
-	// 监听数组变化
-	function observeArray(array, deepObserve, callback, itemPrevKey) {
-	    array = [].concat(_toConsumableArray(array))
-	    // 监听数组push,pop,splice,reverse,shift,unshift
-	    ;['push', 'pop', 'splice', 'reverse', 'shift', 'unshift'].forEach(function (key) {
-	        Object.defineProperty(array, key, {
-	            get: function get() {
-	                return function () {
-	                    var _Array$prototype$key;
-
-	                    console.log('数组变化', key);
-	                    var oldValue = [].concat(_toConsumableArray(array));
-
-	                    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-	                        args[_key] = arguments[_key];
-	                    }
-
-	                    var result = (_Array$prototype$key = Array.prototype[key]).call.apply(_Array$prototype$key, [array].concat(args));
-	                    callback && callback(itemPrevKey, array, oldValue);
-	                    return result;
-	                };
-	            }
+	            enumerable: true
 	        });
-	    });
 
-	    return array;
+	        // 如果{info : {name: 1}} set info 后也会触发 info.name
+	        isSet && _this2.triggerCallback(itemPrevKey, value);
+	    };
+	};
+
+	function setDataProperty() {
+	    var data = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+	    var key = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
+	    var value = arguments[2];
+
+	    var info = data[__RvHook__];
+	    if (info instanceof RvDataHook) {
+	        var deepObserve = info.deepObserve,
+	            observeKey = info.observeKey;
+
+	        observeKey(data, key, value, deepObserve, '', true);
+	    }
+	    return data;
 	}
 
-	exports.default = observe;
+	exports.Observe = Observe;
+	exports.setDataProperty = setDataProperty;
 
 /***/ },
-/* 3 */
+/* 6 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -723,6 +809,11 @@
 	                currentNode.atrributes[value] = undefined;
 	                return true;
 	            }
+	        } else if (AttributeSpread()) {
+	            currentNode.atrributes['spread'] = {
+	                type: 'Expr',
+	                value: value
+	            };
 	        }
 
 	        return false;
@@ -740,18 +831,29 @@
 	        }
 	    }
 
-	    // 属性值
-	    function AttributesEnd() {
+	    function AttributeSpread() {
 	        var _token5 = token,
 	            type = _token5.type,
 	            value = _token5.value;
 
+	        if (type == 'EXPR') {
+	            token = next();
+	            return value;
+	        }
+	    }
+
+	    // 属性值
+	    function AttributesEnd() {
+	        var _token6 = token,
+	            type = _token6.type,
+	            value = _token6.value;
+
 
 	        if (type == 'EQUAL') {
 	            token = next();
-	            var _token6 = token,
-	                _type = _token6.type,
-	                _value = _token6.value;
+	            var _token7 = token,
+	                _type = _token7.type,
+	                _value = _token7.value;
 
 	            if (_type == 'String') {
 	                token = next();
@@ -772,9 +874,9 @@
 
 	    // 开标签结束
 	    function openTagEnd() {
-	        var _token7 = token,
-	            type = _token7.type,
-	            value = _token7.value;
+	        var _token8 = token,
+	            type = _token8.type,
+	            value = _token8.value;
 
 
 	        if (type == 'ARROW_RIGHT') {
@@ -785,9 +887,9 @@
 	    }
 
 	    function closeSelfTagEnd() {
-	        var _token8 = token,
-	            type = _token8.type,
-	            value = _token8.value;
+	        var _token9 = token,
+	            type = _token9.type,
+	            value = _token9.value;
 
 
 	        if (type == 'CLOSE_SELF_TAG_END') {
@@ -805,9 +907,9 @@
 	        }
 	        token = next(index);
 
-	        var _token9 = token,
-	            value = _token9.value,
-	            type = _token9.type;
+	        var _token10 = token,
+	            value = _token10.value,
+	            type = _token10.type;
 
 	        if (type == 'String') {
 
@@ -839,9 +941,9 @@
 	    }
 
 	    function closeTagStart() {
-	        var _token10 = token,
-	            type = _token10.type,
-	            value = _token10.value;
+	        var _token11 = token,
+	            type = _token11.type,
+	            value = _token11.value;
 
 
 	        if (type == 'CLOSE_TAG_START') {
@@ -853,9 +955,9 @@
 	    }
 
 	    function CloseTagName() {
-	        var _token11 = token,
-	            type = _token11.type,
-	            value = _token11.value;
+	        var _token12 = token,
+	            type = _token12.type,
+	            value = _token12.value;
 
 
 	        if (type == 'VAR' && value == currentNode.name) {
@@ -872,9 +974,9 @@
 	        var index = current;
 
 	        if (closeTagStart()) {
-	            var _token12 = token,
-	                value = _token12.value,
-	                type = _token12.type;
+	            var _token13 = token,
+	                value = _token13.value,
+	                type = _token13.type;
 
 	            if (CloseTagName()) {
 	                if (openTagEnd()) {
@@ -908,7 +1010,7 @@
 	 */
 
 /***/ },
-/* 4 */
+/* 7 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -995,7 +1097,81 @@
 	exports.default = Pubsub;
 
 /***/ },
-/* 5 */
+/* 8 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	// dom渲染异步
+	// 这里有一个bug
+	// 同步任务结束之后，【收集变更异步、push也异步】何时执行是一个问题
+	// 一个nextTick的push是同步的，因此此次的nextTick可能不在同步结束的回调上
+	var Tick = function () {
+	    function Tick() {
+	        _classCallCheck(this, Tick);
+
+	        this.queue = [];
+	        this.nextTickQueue = [];
+	    }
+
+	    _createClass(Tick, [{
+	        key: "push",
+	        value: function push(fn) {
+	            var _this = this;
+
+	            var queue = this.queue;
+
+	            queue.push(fn);
+
+	            clearTimeout(this.setTimeout);
+	            this.setTimeout = setTimeout(function () {
+	                _this.exec();
+	            }, 0);
+
+	            return this;
+	        }
+	    }, {
+	        key: "exec",
+	        value: function exec() {
+	            this.queue.forEach(function (fn) {
+	                return fn();
+	            });
+	            this.queue = [];
+	            this.nextTickQueue.forEach(function (fn) {
+	                return fn();
+	            });
+	            this.nextTickQueue = [];
+	            return this;
+	        }
+	    }, {
+	        key: "pushNextTick",
+	        value: function pushNextTick(fn) {
+	            this.nextTickQueue.push(fn);
+	            return this;
+	        }
+	    }, {
+	        key: "forceTick",
+	        value: function forceTick() {
+	            this.exec();
+	            return this;
+	        }
+	    }]);
+
+	    return Tick;
+	}();
+
+	exports.default = Tick;
+
+/***/ },
+/* 9 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -1155,7 +1331,7 @@
 	module.exports = tokenizer;
 
 /***/ },
-/* 6 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -1163,14 +1339,23 @@
 	Object.defineProperty(exports, "__esModule", {
 	    value: true
 	});
+	exports.tick = exports.unmountElement = exports.transform = undefined;
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-	var _getDependenceVarible = __webpack_require__(1);
+	var _getDependenceVarible = __webpack_require__(4);
 
 	var _getDependenceVarible2 = _interopRequireDefault(_getDependenceVarible);
+
+	var _tick = __webpack_require__(8);
+
+	var _tick2 = _interopRequireDefault(_tick);
+
+	var _util = __webpack_require__(11);
+
+	var _util2 = _interopRequireDefault(_util);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -1178,6 +1363,7 @@
 
 	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
+	var tick = new _tick2.default();
 	/**
 	 * [transform description]
 	 * @method transform
@@ -1291,10 +1477,10 @@
 	        var VAR = arr[0];
 	        var LIST = arr[1];
 
-	        function render(state) {
+	        function render(list) {
 	            $parent.innerHTML = '';
 
-	            var eles = state[LIST].map(function (i, index) {
+	            var eles = list.map(function (i, index) {
 	                var newCtx = {};
 	                if (/^\([^\)]+\)$/.test(VAR)) {
 	                    var _arr = VAR.slice(1, -1).split(/\s+/).filter(function (i) {
@@ -1316,19 +1502,16 @@
 	            return $parent;
 	        }
 
-	        render(state);
-
-	        listeners.push($parent, $parent.__RVID, function (key, newValue, oldValue) {
-	            key = key.trim();
-	            var keys = key.split(',').filter(function (i) {
-	                return i;
-	            });
-	            if (keys[0] == LIST) {
-	                // 卸载元素上的事件
-	                _unmount.children($parent);
-	                render(state);
-	            }
+	        var result = handleExpr(LIST, {
+	            attributeName: FOR,
+	            $ele: $parent
+	        }, ctx, function (matched, newValue, oldValue) {
+	            // 监听数据变化
+	            unmount.children($parent);
+	            render(newValue);
 	        });
+
+	        render(result);
 	    }
 
 	    // 处理if指令，不管元素是否渲染，都会留下两个占位的注释节点
@@ -1351,7 +1534,7 @@
 	            // 判断节点类型是不是元素节点
 	            if ($ele.nodeType === 1) {
 	                // 卸载元素
-	                _unmount.element($ele);
+	                unmount.element($ele);
 	                commentStart.parentNode.removeChild($ele);
 	            }
 	        }
@@ -1362,7 +1545,7 @@
 	        }, ctx, function (matched, newValue, oldValue) {
 	            // 监听数据变化
 	            deleteNextElement();
-	            newValue && render();
+	            newValue && render(newValue);
 	        });
 
 	        result && render();
@@ -1382,6 +1565,7 @@
 	            attributeName = watchParams.attributeName;
 
 
+	        var timeout = null;
 	        IS_LISTEN && listeners.push($ele, $ele.__RVID, function (key, newValue, oldValue) {
 	            var keys = key.split(',').filter(function (i) {
 	                return i;
@@ -1390,30 +1574,37 @@
 	                return keys.startsWith(i);
 	            });
 
+	            // 数据来了
 	            if (!matched) return;
 
-	            var cacheAtrribute = watchParams.cacheAtrribute;
+	            // 数据更新后，惰性更新
+	            clearTimeout(timeout);
+	            timeout = setTimeout(function () {
+	                tick.push(function () {
+	                    var cacheAtrribute = watchParams.cacheAtrribute;
 
-	            var newCtx = ctx.slice(1);
-	            newCtx.unshift(state);
+	                    var newCtx = ctx.slice(1);
+	                    newCtx.unshift(state);
 
-	            var newParam = Object.assign.apply(Object, [{}].concat(_toConsumableArray(newCtx)));
-	            var newAttribute = watchParams.cacheAtrribute = a(newParam);
+	                    var newParam = Object.assign.apply(Object, [{}].concat(_toConsumableArray(newCtx)));
+	                    var newAttribute = watchParams.cacheAtrribute = a(newParam);
 
-	            // 处理回调
-	            if (callback) {
-	                return callback(matched, newAttribute, cacheAtrribute);
-	            }
+	                    // 处理回调
+	                    if (callback) {
+	                        return callback(matched, newAttribute, cacheAtrribute);
+	                    }
 
-	            // 更新文本节点
-	            if (type == TYPE_TEXT_NODE) {
-	                $ele.textContent = newAttribute;
-	            }
+	                    // 更新文本节点
+	                    if (type == TYPE_TEXT_NODE) {
+	                        $ele.textContent = newAttribute;
+	                    }
 
-	            // 更新属性
-	            if (type == TYPE_ATTR) {
-	                handleSpecialAttr(attributeName, newAttribute || '', $ele, cacheAtrribute);
-	            }
+	                    // 更新属性
+	                    if (type == TYPE_ATTR) {
+	                        handleSpecialAttr(attributeName, newAttribute || '', $ele, cacheAtrribute);
+	                    }
+	                });
+	            });
 	        });
 
 	        // 去监听数据
@@ -1451,10 +1642,21 @@
 
 	            if (type == 'Expr') {
 	                // 处理事件表达式，但这里不用监听表达式
-	                atts[key] = handleExpr(value, {
+	                var isSpread = false;
+	                if (value.startsWith('...')) {
+	                    isSpread = true;
+	                    value = value.slice(3);
+	                }
+	                var result = handleExpr(value, {
 	                    type: TYPE_ATTR,
 	                    attributeName: key
 	                }, ctx, null, false);
+
+	                if (isSpread) {
+	                    atts = Object.assign({}, atts, result);
+	                } else {
+	                    atts[key] = result;
+	                }
 	            }
 	        });
 
@@ -1498,34 +1700,47 @@
 	        if (key.startsWith('on')) {
 	            // 移除掉之前的事件
 	            events.off(key.slice(2).toLowerCase(), $ele.__RVID);
+
 	            // 新增事件监听
-	            events.on(key.slice(2).toLowerCase(), $ele.__RVID, value);
+	            _util2.default.isFunction(value) && events.on(key.slice(2).toLowerCase(), $ele.__RVID, value);
 	        } else if (key == 'style') {
 	            // 初始样式
-	            var style = '';
-	            if (typeof value === 'undefined' ? 'undefined' : _typeof(value)) {
-	                for (var propertyName in value) {
-	                    if (value.hasOwnProperty(propertyName)) {
-	                        // 处理驼峰形式的css
-	                        var newPropertyName = propertyName.replace(/[A-Z]/g, function (char) {
-	                            return '-' + char.toLowerCase();
-	                        });
-	                        style += ';' + newPropertyName + ' : ' + value[propertyName];
-	                    }
-	                }
-	            } else {
-	                style = value || '';
-	            }
-
-	            $ele.style.cssText += style;
+	            handleStyle($ele, value);
+	        } else if (key == 'complete-style') {
+	            // 初始样式
+	            setTimeout(function () {
+	                $ele.clientWidth;
+	                handleStyle($ele, value);
+	            }, 0);
+	        } else if (key == REF) {
+	            refs[value] = $ele;
 	        } else {
 	            $ele.setAttribute(key, value);
 	        }
+	    }
 
-	        // 处理ref
-	        if (key == REF) {
-	            refs[value] = $ele;
+	    function handleClass() {}
+
+	    // 处理样式
+	    function handleStyle($ele) {
+	        var value = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
+
+	        var style = '';
+	        if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) == 'object') {
+	            for (var propertyName in value) {
+	                if (value.hasOwnProperty(propertyName)) {
+	                    // 处理驼峰形式的css
+	                    var newPropertyName = propertyName.replace(/[A-Z]/g, function (char) {
+	                        return '-' + char.toLowerCase();
+	                    });
+	                    style += ';' + newPropertyName + ' : ' + value[propertyName];
+	                }
+	            }
+	        } else {
+	            style = value || '';
 	        }
+
+	        $ele.style.cssText += style;
 	    }
 
 	    // 返回element list
@@ -1538,19 +1753,11 @@
 	            return;
 	        }
 	        events = new Event($ele);
-	        _unmount = new Unmount(listeners, events, state);
+	        unmount = new Unmount(listeners, events, state);
 
-	        $ele.__Rv = {
-	            isComponentRoot: true,
-	            listeners: listeners,
-	            events: events,
-	            unmount: function unmount() {
-	                _unmount.element($ele);
-	            },
-
-	            children: __children,
-	            component: state
-	        };
+	        $ele.__Rv = new RvElementHook(listeners, events, __children, state, function () {
+	            unmount.element($ele);
+	        });
 	        __$ele = $ele;
 	    }
 
@@ -1558,7 +1765,7 @@
 	    var ctx = [state];
 	    var __$ele = void 0;
 	    var events = void 0;
-	    var _unmount = void 0;
+	    var unmount = void 0;
 	    var __children = [];
 
 	    handleChildren(ast.children, $parent, ast, ctx);
@@ -1568,6 +1775,26 @@
 	        children: __children,
 	        $ele: __$ele
 	    };
+	}
+
+	var RvElementHook = function RvElementHook(listeners, events, children, state, unmount) {
+	    _classCallCheck(this, RvElementHook);
+
+	    this.isComponentRoot = true;
+	    this.listeners = listeners;
+	    this.events = events;
+	    this.unmount = unmount;
+	    this.children = children, this.component = state;
+	};
+
+	// 卸载根组件
+
+
+	function unmountElement($ele) {
+	    if ($ele.__Rv instanceof RvElementHook) {
+	        $ele.__Rv.unmount();
+	        $ele.parentNode.removeChild($ele);
+	    }
 	}
 
 	// 卸载组件
@@ -1584,7 +1811,7 @@
 	    _createClass(Unmount, [{
 	        key: 'element',
 	        value: function element($parent) {
-	            if ($parent.__Rv && $parent.__Rv.isComponentRoot) {
+	            if ($parent.__Rv instanceof RvElementHook && $parent.__Rv.isComponentRoot) {
 	                var _$parent$__Rv$compone = $parent.__Rv.component,
 	                    componentWillUnMount = _$parent$__Rv$compone.componentWillUnMount,
 	                    componentDidUnMount = _$parent$__Rv$compone.componentDidUnMount;
@@ -1731,7 +1958,62 @@
 	    return Event;
 	}();
 
-	exports.default = transform;
+	exports.transform = transform;
+	exports.unmountElement = unmountElement;
+	exports.tick = tick;
+
+/***/ },
+/* 11 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+
+	function getType(obj) {
+	    return Object.prototype.toString.call(obj).toLowerCase().split(' ')[1].slice(0, -1);
+	}
+
+	function isFunction(obj) {
+	    return !!getType(obj).match('function');
+	}
+
+	function isObject(obj) {
+	    return !!getType(obj).match('object');
+	}
+
+	function isArray(obj) {
+	    return !!getType(obj).match('array');
+	}
+
+	function isBoolean(obj) {
+	    return !!getType(obj).match('boolean');
+	}
+
+	function isPromise() {
+	    return !!getType(obj).match('promise');
+	}
+
+	function isAsyncFunction() {
+	    return !!getType(obj).match('asyncfunction');
+	}
+
+	function isGeneratorFunction() {
+	    return !!getType(obj).match('generatorfunction');
+	}
+
+	exports.default = {
+	    getType: getType,
+	    isFunction: isFunction,
+	    isObject: isObject,
+	    isArray: isArray,
+	    isBoolean: isBoolean,
+	    isPromise: isPromise,
+	    isAsyncFunction: isAsyncFunction,
+	    isGeneratorFunction: isGeneratorFunction
+	};
 
 /***/ }
 /******/ ]);

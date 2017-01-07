@@ -3,32 +3,14 @@
 // 我们可以通过componentShouldUpdate方法来决定，是否更新组件
 // 本着自动化的目标，我们也期望对数据依赖做出追踪，然后当state变化的时候，自动更新
 
-// let obj = {name: 1}
-//
-// let value = '111'
-// Object.defineProperty(obj , 'name', {
-//     get(){
-//         return value
-//     },
-//     set(newValue){
-//         console.log('设置新值', newValue)
-//         value = newValue
-//     }
-// })
+import util from './util'
 
-let util = {
-    isFunction(arg){
-        return !!Object.prototype.toString.call(arg).match('Function')
-    },
-    isObject(arg){
-        return !!Object.prototype.toString.call(arg).match('Object')
-    },
-    isArray(arg){
-        return !!Object.prototype.toString.call(arg).match('Array')
-    },
-    isBoolean(arg){
-        return !!Object.prototype.toString.call(arg).match('Boolean')
-    },
+// 主要是用来检验对象是不是一个被Observe过得对象
+class RvDataHook {
+    constructor(deepObserve, observeKey){
+        this.observeKey = observeKey
+        this.deepObserve = deepObserve
+    }
 }
 
 // 监听数据
@@ -40,70 +22,118 @@ let util = {
  * @param  {String}   [prevKey='']        [传递完整的key->key->key]
  * @return {[type]}                       [返回observe data]
  */
-function observe(data, deepObserve = false, callback, prevKey = '') {
-    let newData = {}
-    Object.keys(data).forEach(key => {
-        if (data.hasOwnProperty(key)) {
-            let value = data[key]
+const __RvHook__ = '__RvHook__'
+class Observe {
+    constructor(data, callback, deepObserve = false){
+        this.callback = callback
+        let newData = this.observeObject(data, deepObserve)
 
-            let itemPrevKey = prevKey + key + ','
-            // 深度监听
-            if (deepObserve) {
-                if (util.isObject(value)) {
-                    value = observe(value, deepObserve, callback, itemPrevKey)
-                } else if (util.isArray(value)) {
-                    value = observeArray(value, deepObserve, callback, itemPrevKey)
-                }
-            }
-
-            Object.defineProperty(newData , key, {
-                get(){
-                    return value
-                },
-                set(newValue){
-
-                    let oldValue = value
-                    value = newValue
-
-                    // 如果新值还是obj，那就继续监听
-                    if (deepObserve) {
-                        if (util.isObject(value)) {
-                            value = observe(value, deepObserve, callback, itemPrevKey)
-                        } else if (util.isArray(value)) {
-                            value = observeArray(value, deepObserve, callback, itemPrevKey)
-                        }
-                    }
-
-                    // 回调函数
-                    callback && callback(itemPrevKey, newValue, oldValue )
-                },
-                enumerable: true,
-            })
-        }
-    })
-
-    return newData
-}
-
-// 监听数组变化
-function observeArray(array, deepObserve, callback, itemPrevKey) {
-    array = [...array]
-    // 监听数组push,pop,splice,reverse,shift,unshift
-    ;['push', 'pop', 'splice', 'reverse', 'shift', 'unshift'].forEach(key =>{
-        Object.defineProperty(array, key, {
+        let {observeKey, triggerCallback} = this
+        // 埋一个不可枚举的属性，用来添加新属性
+        Object.defineProperty(newData, __RvHook__, {
             get(){
-                return function(...args){
-                    console.log('数组变化', key)
-                    let oldValue = [...array]
-                    let result = Array.prototype[key].call(array, ...args)
-                    callback && callback(itemPrevKey, array, oldValue)
-                    return result
-                }
+                return new RvDataHook(deepObserve, observeKey)
+            } ,
+            enumerable: false
+        })
+        return newData
+    }
+    triggerCallback = (itemPrevKey, array, oldValue)=>{
+        this.callback && this.callback(itemPrevKey, array, oldValue)
+    }
+    observeObject(data, deepObserve = false, prevKey = '', isSet = false) {
+        let newData = {}
+        Object.keys(data).forEach(key => {
+            if (data.hasOwnProperty(key)) {
+                let value = data[key]
+                this.observeKey(newData, key , value, deepObserve, prevKey, isSet)
             }
         })
-    })
 
-    return array
+        return newData
+    }
+    observeKey = (newData, key, value, deepObserve = false,  prevKey = '', isSet = false) => {
+        let itemPrevKey = prevKey + key + ','
+        // 深度监听
+        if (deepObserve) {
+            if (util.isObject(value)) {
+                value = this.observeObject(value, deepObserve, itemPrevKey, isSet)
+            } else if (util.isArray(value)) {
+                value = this.observeArray(value, deepObserve, itemPrevKey, isSet)
+            }
+        }
+
+        let that = this
+        Object.defineProperty(newData , key, {
+            get(){
+                return value
+            },
+            set(newValue){
+
+                let oldValue = value
+                value = newValue
+
+                // 如果新值还是obj，那就继续监听
+                if (deepObserve) {
+                    if (util.isObject(value)) {
+                        value = that.observeObject(value, deepObserve, itemPrevKey, true)
+                    } else if (util.isArray(value)) {
+                        value = that.observeArray(value, deepObserve, itemPrevKey, true)
+                    }
+                }
+
+                // 回调函数
+                that.triggerCallback(itemPrevKey, newValue, oldValue)
+
+            },
+            enumerable: true,
+        })
+
+        // 如果{info : {name: 1}} set info 后也会触发 info.name
+        isSet && this.triggerCallback(itemPrevKey, value)
+
+    }
+    observeArray(array, deepObserve, itemPrevKey) {
+        let that = this
+        array = [...array]
+        // 监听数组push,pop,splice,reverse,shift,unshift
+        ;['push', 'pop', 'splice', 'reverse', 'shift', 'unshift'].forEach(key =>{
+            Object.defineProperty(array, key, {
+                get(){
+                    return function(...args){
+                        let oldValue = [...array]
+                        let result = Array.prototype[key].call(array, ...args)
+                        that.triggerCallback(itemPrevKey, array, oldValue)
+                        return result
+                    }
+                }
+            })
+        })
+
+        return array
+    }
 }
 
-export default observe
+/**
+ * [setDataProperty 给已被Observe的对象，添加新属性，新属性可以被继续监控]
+ * @method setDataProperty
+ * @param  {Object}        [data={}] [description]
+ * @param  {String}        [key='']  [description]
+ * @param  {[type]}        value     [description]
+ */
+function setDataProperty(data = {}, key = '' , value) {
+    let info = data[__RvHook__]
+    if (info instanceof RvDataHook) {
+        let {
+            deepObserve,
+            observeKey,
+        } = info
+        observeKey(data, key , value, deepObserve, '', true)
+    }
+    return data
+}
+
+export {
+    Observe,
+    setDataProperty
+}

@@ -7,6 +7,8 @@ let ExtractTextPlugin = require("extract-text-webpack-plugin");
 let WebpackPathOrderPlugin = require('path-order-webpack-plugin');
 let notifier = require('node-notifier');
 
+let autoprefixer = require('autoprefixer')
+
 let path = require('path')
 let fs = require('fs')
 
@@ -47,6 +49,7 @@ module.exports = {
         loaders: [
             // 对js/jsx文件的处理
             { test: /\.(js|jsx)$/ , loader: 'babel-loader' },
+            { test: /\.scss$/, loaders: ['style','css','postcss','sass'] },
         ]
     },
     // babel需要的 presets / plugins 预设或者插件
@@ -56,7 +59,7 @@ module.exports = {
     },
 
     // 使用postcss来解决prefixer问题，根据需要填写相关浏览器/系统版本号
-    // postcss:  [ autoprefixer({ browsers: ['last 4 versions', 'IOS 7', 'Android 4.3'] }) ],
+    postcss:  [ autoprefixer({ browsers: ['last 4 versions', 'IOS 7', 'Android 4.3'] }) ],
     // 不需要webpack打包的文件，key: require('key') , value: 全局对象名
     externals: {
     },
