@@ -76,4 +76,4 @@ window.router = (function(){
 
 DOMRender(App, document.querySelector('#app'))
 
-router.push(location.pathname)
+router.push('/')
