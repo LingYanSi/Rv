@@ -286,6 +286,7 @@ function transform(ast, state, listeners, $parent, components, props) {
 
     // 处理属性
     function handleAttributes(atrributes, $ele, ctx){
+        // 需要先处理object spread
         Object.keys(atrributes).filter(i => {
             return i != FOR && i != IF
         }).map(key => {
@@ -298,12 +299,25 @@ function transform(ast, state, listeners, $parent, components, props) {
                 }
 
                 if (type == 'Expr') {
-                    // 处理事件监听
-                    value = handleExpr(value, {
-                        type: TYPE_ATTR,
-                        $ele,
-                        attributeName: key,
-                    }, ctx)
+                    // 处理Object spread
+                    if (value.startsWith('...')) {
+                        value = value.slice(3)
+                        let result = handleExpr(value, {
+                            type: TYPE_ATTR,
+                            attributeName: key,
+                        }, ctx, null, false)
+
+                        Object.keys(result).forEach(key => {
+                            handleSpecialAttr(key, result[key], $ele )
+                        })
+                        return
+                    } else {
+                        value = handleExpr(value, {
+                            type: TYPE_ATTR,
+                            $ele,
+                            attributeName: key,
+                        }, ctx)
+                    }
                 }
 
                 // 处理特殊的属性

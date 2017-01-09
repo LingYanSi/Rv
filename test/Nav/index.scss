@@ -1,0 +1,20 @@
+#nav {
+    height: 50px;
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    background: rgb(187, 181, 207);
+    display: flex;
+    .item {
+        flex: 1;
+        text-align: center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        &.current {
+            background: rgb(164, 232, 244);
+        }
+    }
+}

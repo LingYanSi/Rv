@@ -1,0 +1,20 @@
+#movies {
+    .item {
+        padding-top: 60%;
+        background-color: rgb(4, 132, 136);
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+        position: relative;
+
+        p {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 50px;
+            width: 100%;
+            background-color: rgba(0, 0, 0, .6);
+            color: #fff;
+        }
+    }
+}

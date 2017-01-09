@@ -1665,6 +1665,7 @@
 
 	    // 处理属性
 	    function handleAttributes(atrributes, $ele, ctx) {
+	        // 需要先处理object spread
 	        Object.keys(atrributes).filter(function (i) {
 	            return i != FOR && i != IF;
 	        }).map(function (key) {
@@ -1679,12 +1680,31 @@
 	                }
 
 	                if (type == 'Expr') {
-	                    // 处理事件监听
-	                    value = handleExpr(value, {
-	                        type: TYPE_ATTR,
-	                        $ele: $ele,
-	                        attributeName: key
-	                    }, ctx);
+	                    // 处理Object spread
+	                    if (value.startsWith('...')) {
+	                        var _ret = function () {
+	                            value = value.slice(3);
+	                            var result = handleExpr(value, {
+	                                type: TYPE_ATTR,
+	                                attributeName: key
+	                            }, ctx, null, false);
+
+	                            Object.keys(result).forEach(function (key) {
+	                                handleSpecialAttr(key, result[key], $ele);
+	                            });
+	                            return {
+	                                v: void 0
+	                            };
+	                        }();
+
+	                        if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+	                    } else {
+	                        value = handleExpr(value, {
+	                            type: TYPE_ATTR,
+	                            $ele: $ele,
+	                            attributeName: key
+	                        }, ctx);
+	                    }
 	                }
 
 	                // 处理特殊的属性
