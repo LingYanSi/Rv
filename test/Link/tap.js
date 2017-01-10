@@ -33,7 +33,7 @@ function onTap(func){
             },
             onTouchEnd(...args){
                 if(scroll) return
-                notMove && (new Date().getTime() - startTime < 200) && func(...args)
+                notMove && (new Date().getTime() - startTime < 600) && func(...args)
             }
         }
     } else {

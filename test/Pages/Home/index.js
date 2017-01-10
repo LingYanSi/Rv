@@ -76,18 +76,24 @@ class Open extends Component {
 class Item extends Component {
     template = `
         <li style={styles} complete-style={complateStyle} onClick={fuck}>
-            {props.i + 1} : {props.item.title} : {props.item.content} <button onclick={props.del} data-index={props.item.id}>删除</button>
+            <div>
+                <h4>{props.i + 1} : {props.item.title}</h4>
+                <p>
+                    {props.item.content}
+                </p>
+            </div>
+            <button onclick={props.del} data-index={props.item.id}>删除</button>
         </li>
     `
     data = {
         styles: {
-            background: 'rgb(144, 203, 132)',
-            height: '50px',
+            background: '',
+            padding: '10px',
+            borderBottom: '1px solid #fff',
             transition: 'all .8s'
         },
         complateStyle: {
-            background: 'red',
-            height: '30px'
+            background: 'rgb(144, 212, 143)',
         },
     }
     method = {
@@ -194,6 +200,9 @@ class Home extends Component {
                     console.log('wocao')
                 })
             }, 1000)
+        },
+        onShow(){
+            console.log('页面onshoe了')
         }
     }
     // 事件监听
@@ -211,10 +220,10 @@ class Home extends Component {
 
         setTimeout(()=>{
             this.name = '哈哈哈'
-            console.log(this.refs.input.getAttribute('placeholder'))
+            console.log('placeholder',this.refs.input.getAttribute('placeholder'))
             // 此处有bug
             nextTick(()=>{
-                console.log(this.refs.input.getAttribute('placeholder'))
+                console.log('placeholder',this.refs.input.getAttribute('placeholder'))
             })
         }, 2000)
 

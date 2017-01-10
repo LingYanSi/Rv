@@ -101,10 +101,12 @@
 	            args[_key] = arguments[_key];
 	        }
 
-	        return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = Page.__proto__ || Object.getPrototypeOf(Page)).call.apply(_ref, [this].concat(args))), _this), _this.template = '<div style="padding-bottom: 50px;">\n        <div v-if={pageShow}>\n            <Page1 />\n        </div>\n    </div>', _this.components = {
+	        return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = Page.__proto__ || Object.getPrototypeOf(Page)).call.apply(_ref, [this].concat(args))), _this), _this.template = '<div style="padding-bottom: 50px;">\n        <div v-if={pageShow1}>\n            <Page1 ref="Page1"/>\n        </div>\n        <div v-if={pageShow2}>\n            <Page2 ref="Page2" />\n        </div>\n        <div v-if={pageShow3}>\n            <Page3 ref="Page3" />\n        </div>\n    </div>', _this.components = {
 	            Page1: null
 	        }, _this.data = {
-	            pageShow: false
+	            pageShow1: false,
+	            pageShow2: false,
+	            pageShow3: false
 	        }, _this.method = {}, _temp), _possibleConstructorReturn(_this, _ret);
 	    }
 
@@ -112,6 +114,7 @@
 	        key: 'componentDidMount',
 	        value: function componentDidMount() {
 	            Page.self = this;
+	            this.cache = [];
 	        }
 	    }]);
 
@@ -119,9 +122,67 @@
 	}(Component);
 
 	Page.update = function (Component) {
+	    var url = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '/';
+	    var replace = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+
 	    var that = Page.self;
-	    that.components.Page1 = Component;
-	    that.pageShow = true;
+
+	    var cache = that.cache;
+
+	    var pageIndex = 1;
+	    var cacheScrollTop = 0;
+	    var match = cache.some(function (item, index) {
+	        if (url == item.url) {
+	            pageIndex = item.pageIndex;
+	            cacheScrollTop = item.scrollTop;
+	            cache.splice(index, 1);
+	            return true;
+	        }
+	    });
+
+	    if (match) {
+	        // that.refs[`Page${pageIndex}`].$ele += 'display: block;'
+	        console.log('页面已经被缓存过');
+	    } else {
+	        if (cache.length < 3) {
+	            pageIndex = cache.length + 1;
+	            console.log('page新增一个');
+	        } else {
+	            pageIndex = cache[0].pageIndex;
+	            cache.shift();
+	            console.log('page新增一个，删除一个');
+	        }
+	        that.components['Page' + pageIndex] = Component;
+	        that['pageShow' + pageIndex] = true;
+	    }
+
+	    if (that.prev) {
+	        that.cache[that.cache.length - 1].scrollTop = document.body.scrollTop;
+	    }
+	    // 1 2 3 4 如果已经存在
+	    // push(current) shift(0)
+	    // 调整位置
+	    // 如果页面已经缓存就从缓存内拿，如果不存在就从getNext()
+	    nextTick(function () {
+	        var prev = that.prev;
+	        var current = that.refs['Page' + pageIndex];
+	        if (prev) {
+	            prev.$ele.style.cssText += 'display: none;';
+	            prev.onHide && prev.onHide();
+	        }
+
+	        current.onShow && current.onShow();
+	        current.$ele.style.cssText += 'display: block;';
+	        that.prev = current;
+	        that.cache.push({
+	            url: url,
+	            pageIndex: pageIndex
+	        });
+
+	        if (match) {
+	            document.body.scrollTop = cacheScrollTop;
+	        }
+	    });
 
 	    return that;
 	};
@@ -150,16 +211,65 @@
 	    var listenCaches = [];
 	    var currentRouter = '';
 
+	    window.addEventListener('popstate', function () {
+	        render(location.pathname);
+	    });
+
+	    // 渲染页面
+	    function render(url) {
+	        var replace = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+
+	        currentRouter = url;
+
+	        var Component = routers[url];
+	        Page.update(Component, url, replace);
+
+	        listenCaches.forEach(function (fn) {
+	            return fn(url);
+	        });
+	    }
+
+	    // 更改title
+	    function changeDocumentTitle(title) {
+	        document.title = title;
+	        var UA = window.navigator.userAgent.toLowerCase();
+	        if (UA.match('phone') && UA.match('micromessenger')) {
+	            (function () {
+	                var iframe = document.createElement('iframe');
+	                iframe.src = '/package.json';
+
+	                iframe.style.cssText = 'display: none';
+	                var listener = function listener() {
+	                    setTimeout(function () {
+	                        iframe.removeEventListener('load', listener);
+	                        setTimeout(function () {
+	                            document.body.removeChild(iframe);
+	                        }, 0);
+	                    }, 0);
+	                };
+	                iframe.addEventListener('load', listener);
+	                document.body.appendChild(iframe);
+	            })();
+	        }
+	    }
+
 	    var router = {
-	        push: function push(url) {
-	            currentRouter = url;
+	        push: function push() {
+	            var url = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '/';
+	            var title = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
 
-	            var Component = routers[url];
-	            Page.update(Component);
+	            render(url);
+	            history.pushState(title, null, url);
+	            changeDocumentTitle(title);
+	            return this;
+	        },
+	        replace: function replace() {
+	            var url = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '/';
+	            var title = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
 
-	            listenCaches.forEach(function (fn) {
-	                return fn(url);
-	            });
+	            render(url, true);
+	            history.replaceState(title, null, url);
+	            changeDocumentTitle(title);
 	            return this;
 	        },
 	        getCurrentRouter: function getCurrentRouter() {
@@ -182,7 +292,7 @@
 
 	DOMRender(App, document.querySelector('#app'));
 
-	router.push('/');
+	router.replace('/', '首頁');
 
 /***/ },
 /* 1 */
@@ -718,7 +828,7 @@
 
 
 	// module
-	exports.push([module.id, "#nav {\n  height: 50px;\n  width: 100%;\n  position: fixed;\n  bottom: 0;\n  left: 0;\n  background: #bbb5cf;\n  display: -webkit-box;\n  display: -webkit-flex;\n  display: -ms-flexbox;\n  display: flex; }\n  #nav .item {\n    -webkit-box-flex: 1;\n    -webkit-flex: 1;\n        -ms-flex: 1;\n            flex: 1;\n    text-align: center;\n    display: -webkit-box;\n    display: -webkit-flex;\n    display: -ms-flexbox;\n    display: flex;\n    -webkit-box-pack: center;\n    -webkit-justify-content: center;\n        -ms-flex-pack: center;\n            justify-content: center;\n    -webkit-box-align: center;\n    -webkit-align-items: center;\n        -ms-flex-align: center;\n            align-items: center; }\n    #nav .item.current {\n      background: #a4e8f4; }\n", ""]);
+	exports.push([module.id, "* {\n  -webkit-tap-highlight-color: rgba(255, 0, 0, 0); }\n\na:visited {\n  color: inherit; }\n\na:Link {\n  color: inherit; }\n\na:active {\n  color: inherit; }\n\nbutton {\n  line-height: 2;\n  padding: 0 1em;\n  outline: none;\n  border: 1px solid #787579;\n  background: inherit; }\n\n#nav {\n  height: 50px;\n  width: 100%;\n  position: fixed;\n  bottom: 0;\n  left: 0;\n  background: #bbb5cf;\n  display: -webkit-box;\n  display: -webkit-flex;\n  display: -ms-flexbox;\n  display: flex; }\n  #nav .item {\n    -webkit-box-flex: 1;\n    -webkit-flex: 1;\n        -ms-flex: 1;\n            flex: 1;\n    text-align: center;\n    display: -webkit-box;\n    display: -webkit-flex;\n    display: -ms-flexbox;\n    display: flex;\n    -webkit-box-pack: center;\n    -webkit-justify-content: center;\n        -ms-flex-pack: center;\n            justify-content: center;\n    -webkit-box-align: center;\n    -webkit-align-items: center;\n        -ms-flex-align: center;\n            align-items: center; }\n    #nav .item.current {\n      background: #a4e8f4; }\n", ""]);
 
 	// exports
 
@@ -766,7 +876,7 @@
 	            args[_key] = arguments[_key];
 	        }
 
-	        return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = Nav.__proto__ || Object.getPrototypeOf(Nav)).call.apply(_ref, [this].concat(args))), _this), _this.template = '\n        <div id="nav" v-for={item in items}>\n            <Link class="item" href={item.url}>\n                <div>{item.title}</div>\n            </Link>\n        </div>\n    ', _this.components = { Link: _Link2.default }, _this.data = {
+	        return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = Nav.__proto__ || Object.getPrototypeOf(Nav)).call.apply(_ref, [this].concat(args))), _this), _this.template = '\n        <div id="nav" v-for={item in items}>\n            <Link class="item" href={item.url} title={item.title} replace={false}>\n                <div>{item.title}</div>\n            </Link>\n        </div>\n    ', _this.components = { Link: _Link2.default }, _this.data = {
 	            items: [{ title: '首页', url: '/' }, { title: '影院', url: '/movies' }, { title: '我的', url: '/mine' }]
 	        }, _this.method = {
 	            click: function click(event) {
@@ -979,15 +1089,15 @@
 	            args[_key4] = arguments[_key4];
 	        }
 
-	        return _ret4 = (_temp4 = (_this4 = _possibleConstructorReturn(this, (_ref4 = Item.__proto__ || Object.getPrototypeOf(Item)).call.apply(_ref4, [this].concat(args))), _this4), _this4.template = '\n        <li style={styles} complete-style={complateStyle} onClick={fuck}>\n            {props.i + 1} : {props.item.title} : {props.item.content} <button onclick={props.del} data-index={props.item.id}>\u5220\u9664</button>\n        </li>\n    ', _this4.data = {
+	        return _ret4 = (_temp4 = (_this4 = _possibleConstructorReturn(this, (_ref4 = Item.__proto__ || Object.getPrototypeOf(Item)).call.apply(_ref4, [this].concat(args))), _this4), _this4.template = '\n        <li style={styles} complete-style={complateStyle} onClick={fuck}>\n            <div>\n                <h4>{props.i + 1} : {props.item.title}</h4>\n                <p>\n                    {props.item.content}\n                </p>\n            </div>\n            <button onclick={props.del} data-index={props.item.id}>\u5220\u9664</button>\n        </li>\n    ', _this4.data = {
 	            styles: {
-	                background: 'rgb(144, 203, 132)',
-	                height: '50px',
+	                background: '',
+	                padding: '10px',
+	                borderBottom: '1px solid #fff',
 	                transition: 'all .8s'
 	            },
 	            complateStyle: {
-	                background: 'red',
-	                height: '30px'
+	                background: 'rgb(144, 212, 143)'
 	            }
 	        }, _this4.method = {
 	            fuck: function fuck() {
@@ -1090,6 +1200,9 @@
 	                        console.log('wocao');
 	                    });
 	                }, 1000);
+	            },
+	            onShow: function onShow() {
+	                console.log('页面onshoe了');
 	            }
 	        }, _this5.events = {}, _temp5), _possibleConstructorReturn(_this5, _ret5);
 	    }
@@ -1112,10 +1225,10 @@
 
 	            setTimeout(function () {
 	                _this7.name = '哈哈哈';
-	                console.log(_this7.refs.input.getAttribute('placeholder'));
+	                console.log('placeholder', _this7.refs.input.getAttribute('placeholder'));
 	                // 此处有bug
 	                nextTick(function () {
-	                    console.log(_this7.refs.input.getAttribute('placeholder'));
+	                    console.log('placeholder', _this7.refs.input.getAttribute('placeholder'));
 	                });
 	            }, 2000);
 	        }
@@ -1368,7 +1481,6 @@
 	        }, _this.method = {
 	            onTap: _tap2.default,
 	            handleRouterChange: function handleRouterChange(url) {
-	                console.log(url === this.props.href);
 	                if (url === this.props.href) {
 	                    this.current = CURRENT;
 	                } else {
@@ -1376,8 +1488,13 @@
 	                }
 	            },
 	            change: function change(event) {
+	                var _props = this.props,
+	                    href = _props.href,
+	                    title = _props.title,
+	                    replace = _props.replace;
+
 	                if (!event.target.classList.contains('current')) {
-	                    router.push(this.props.href);
+	                    replace ? router.replace(href, title) : router.push(href, title);
 	                }
 	            }
 	        }, _temp), _possibleConstructorReturn(_this, _ret);
@@ -1445,7 +1562,7 @@
 	            },
 	            onTouchEnd: function onTouchEnd() {
 	                if (scroll) return;
-	                notMove && new Date().getTime() - startTime < 200 && func.apply(undefined, arguments);
+	                notMove && new Date().getTime() - startTime < 600 && func.apply(undefined, arguments);
 	            }
 	        };
 	    } else {

@@ -1,3 +1,27 @@
+* {
+    -webkit-tap-highlight-color: rgba(255, 0, 0, 0);
+}
+
+a {
+    &:visited {
+        color: inherit;
+    }
+    &:Link {
+        color: inherit;
+    }
+    &:active {
+        color: inherit;
+    }
+}
+
+button {
+    line-height: 2;
+    padding: 0 1em;
+    outline: none;
+    border: 1px solid rgb(120, 117, 121);
+    background: inherit;
+}
+
 #nav {
     height: 50px;
     width: 100%;

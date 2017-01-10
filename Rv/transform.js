@@ -47,6 +47,10 @@ function transform(ast, state, listeners, $parent, components, props) {
                     ctx
                 })
                 let child = window.Rv.DOMRender(components[name], $parent, props)
+                // 处理ref
+                if (props.ref) {
+                    refs[props.ref] = child 
+                }
                 // 子组件放在父组件的children中，方便卸载
                 // 组件卸载：事件 + dom
                 __children.push(child)

@@ -5,7 +5,7 @@ import './index.scss'
 export default class Nav extends Component {
     template = `
         <div id="nav" v-for={item in items}>
-            <Link class="item" href={item.url}>
+            <Link class="item" href={item.url} title={item.title} replace={false}>
                 <div>{item.title}</div>
             </Link>
         </div>

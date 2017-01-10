@@ -1141,20 +1141,30 @@
 	    }, {
 	        key: "exec",
 	        value: function exec() {
+	            var _this2 = this;
+
 	            this.queue.forEach(function (fn) {
 	                return fn();
 	            });
 	            this.queue = [];
-	            this.nextTickQueue.forEach(function (fn) {
-	                return fn();
+	            // 执行所有id小于this.setTimeout的毁掉函数
+	            this.nextTickQueue.forEach(function (item) {
+	                var id = item.id,
+	                    fn = item.fn;
+
+	                id <= _this2.setTimeout && fn();
 	            });
 	            this.nextTickQueue = [];
+
 	            return this;
 	        }
 	    }, {
 	        key: "pushNextTick",
 	        value: function pushNextTick(fn) {
-	            this.nextTickQueue.push(fn);
+	            this.nextTickQueue.push({
+	                id: this.setTimeout || -1,
+	                fn: fn
+	            });
 	            return this;
 	        }
 	    }, {
@@ -1413,6 +1423,10 @@
 	                    ctx: ctx
 	                });
 	                var child = window.Rv.DOMRender(components[name], $parent, _props);
+	                // 处理ref
+	                if (_props.ref) {
+	                    refs[_props.ref] = child;
+	                }
 	                // 子组件放在父组件的children中，方便卸载
 	                // 组件卸载：事件 + dom
 	                __children.push(child);

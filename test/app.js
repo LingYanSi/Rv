@@ -8,26 +8,89 @@ let {Component, DOMRender, ps, set, nextTick} = window.Rv
 
 class Page extends Component {
     template = `<div style="padding-bottom: 50px;">
-        <div v-if={pageShow}>
-            <Page1 />
+        <div v-if={pageShow1}>
+            <Page1 ref="Page1"/>
+        </div>
+        <div v-if={pageShow2}>
+            <Page2 ref="Page2" />
+        </div>
+        <div v-if={pageShow3}>
+            <Page3 ref="Page3" />
         </div>
     </div>`
     components = {
         Page1: null
     }
     data = {
-        pageShow: false
+        pageShow1: false,
+        pageShow2: false,
+        pageShow3: false,
     }
     method = {
 
     }
     componentDidMount(){
         Page.self = this
+        this.cache = []
     }
-    static update = (Component)=>{
+    static update = (Component, url = '/', replace = false)=>{
         let that = Page.self
-        that.components.Page1 = Component
-        that.pageShow = true
+
+        let {cache} = that
+        let pageIndex = 1
+        let cacheScrollTop = 0
+        let match = cache.some((item , index)=> {
+            if(url == item.url){
+                pageIndex = item.pageIndex
+                cacheScrollTop = item.scrollTop
+                cache.splice(index, 1)
+                return true
+            }
+        })
+
+        if (match) {
+            // that.refs[`Page${pageIndex}`].$ele += 'display: block;'
+            console.log('页面已经被缓存过')
+        } else {
+            if (cache.length < 3) {
+                pageIndex = cache.length + 1
+                console.log('page新增一个')
+            } else {
+                pageIndex = cache[0].pageIndex
+                cache.shift()
+                console.log('page新增一个，删除一个')
+            }
+            that.components[`Page${pageIndex}`] = Component
+            that[`pageShow${pageIndex}`] = true
+        }
+
+        if (that.prev) {
+            that.cache[that.cache.length - 1].scrollTop = document.body.scrollTop
+        }
+        // 1 2 3 4 如果已经存在
+        // push(current) shift(0)
+        // 调整位置
+        // 如果页面已经缓存就从缓存内拿，如果不存在就从getNext()
+        nextTick(()=>{
+            let prev = that.prev
+            let current = that.refs[`Page${pageIndex}`]
+            if (prev) {
+                prev.$ele.style.cssText += 'display: none;'
+                prev.onHide && prev.onHide()
+            }
+
+            current.onShow && current.onShow()
+            current.$ele.style.cssText += 'display: block;'
+            that.prev = current
+            that.cache.push({
+                url,
+                pageIndex,
+            })
+
+            if (match) {
+                document.body.scrollTop = cacheScrollTop
+            }
+        })
 
         return that
     }
@@ -48,14 +111,52 @@ window.router = (function(){
     let listenCaches = []
     let currentRouter = ''
 
+    window.addEventListener('popstate', ()=>{
+        render(location.pathname)
+    })
+
+    // 渲染页面
+    function render(url, replace = false){
+        currentRouter = url
+
+        let Component = routers[url]
+        Page.update(Component, url, replace)
+
+        listenCaches.forEach(fn => fn(url))
+    }
+
+    // 更改title
+    function changeDocumentTitle(title){
+        document.title = title
+        const UA = window.navigator.userAgent.toLowerCase()
+        if (UA.match('phone') && UA.match('micromessenger')) {
+            const iframe = document.createElement('iframe');
+            iframe.src = '/package.json'; 
+            iframe.style.cssText = 'display: none';
+            const listener = () => {
+                setTimeout(() => {
+                    iframe.removeEventListener('load', listener);
+                    setTimeout(() => {
+                        document.body.removeChild(iframe);
+                    }, 0);
+                }, 0);
+            };
+            iframe.addEventListener('load', listener);
+            document.body.appendChild(iframe);
+        }
+    }
+
     let router = {
-        push(url){
-            currentRouter = url
-
-            let Component = routers[url]
-            Page.update(Component)
-
-            listenCaches.forEach(fn => fn(url))
+        push(url = '/', title = ''){
+            render(url)
+            history.pushState(title, null, url)
+            changeDocumentTitle(title)
+            return this
+        },
+        replace(url = '/', title = ''){
+            render(url, true)
+            history.replaceState(title, null, url)
+            changeDocumentTitle(title)
             return this
         },
         getCurrentRouter(){
@@ -76,4 +177,4 @@ window.router = (function(){
 
 DOMRender(App, document.querySelector('#app'))
 
-router.push('/')
+router.replace('/', '首頁')

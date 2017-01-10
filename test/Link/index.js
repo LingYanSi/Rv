@@ -16,7 +16,6 @@ class Link extends Component {
     method = {
         onTap,
         handleRouterChange(url){
-            console.log(url === this.props.href)
             if (url === this.props.href) {
                 this.current = CURRENT
             } else {
@@ -24,8 +23,9 @@ class Link extends Component {
             }
         },
         change(event){
+            let {href, title, replace} = this.props
             if (!event.target.classList.contains('current')) {
-                router.push(this.props.href)
+                replace ? router.replace(href, title) : router.push(href, title)
             }
         }
     }

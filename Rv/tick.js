@@ -22,12 +22,20 @@ class Tick {
     exec(){
         this.queue.forEach(fn => fn())
         this.queue = []
-        this.nextTickQueue.forEach(fn => fn())
+        // 执行所有id小于this.setTimeout的毁掉函数
+        this.nextTickQueue.forEach(item => {
+            let {id, fn} = item
+            id <= this.setTimeout && fn()
+        })
         this.nextTickQueue = []
+
         return this
     }
     pushNextTick(fn){
-        this.nextTickQueue.push(fn)
+        this.nextTickQueue.push({
+            id: this.setTimeout || -1,
+            fn
+        })
         return this
     }
     forceTick(){
