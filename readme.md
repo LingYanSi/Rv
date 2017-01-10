@@ -4,17 +4,16 @@
 赶着2016年的尾巴，学习了一点编译原理，然后就想实现一个jsx的parser，但无奈要想实现jsx的parser就必须要先实现一个js的parser，难度有一些大。
 比对一下，还是vue得模板解析简单一些，因此就拿他开刀了。不过这里，目前还没有严格按照vue的规范去解析。更多的是跟着自己的节奏走。
 
-但是jsx要比字符串模板更灵活，可以在render里面随意搞，而字符串模板相对就灵活性受限
-
-
-
 ## 已实现
 - 组件嵌套
 - 事件委托
 - 数据监听
 - 字符串模板解析
-- 模板内表达式的以来追踪
+- 模板内表达式的依赖追踪
+- Object spread
 - slots
+- complete-style
+- 组件传递
 - etc
 
 ## 待实现
@@ -81,3 +80,51 @@ class App extends Component{
 DOMRender(App, document.querySelector('#app'))
 
 ```
+
+## JSX与字符串模板比较
+
+jsx要比字符串模板更灵活，可以在render里面随意搞，而字符串模板相对就灵活性受限
+
+### jsx有语言级别的优先级
+- jsx
+
+```js
+import onTap from 'module/onTap'
+import {Component} from 'react'
+
+class Fuck extends Component {
+    click(){
+        alert('11')
+    }
+    render(){
+        return <div {...onTap(this.click)}></div>
+    }
+}
+```
+
+- js string template
+
+```js
+import onTap from 'module/onTap'
+import {Component} from 'react'
+
+class Fuck extends Component {
+    templte = `<div {...onTap(this.click)}></div>`
+    method = {
+        onTap,
+        click(){
+            alert('11')
+        }
+    }
+}
+```
+
+如上，可以发现在jsx中把onTap import进来后，不用把onTap注入到Fuck中，因为jsx编译器会把
+```js
+<div {...onTap(this.click)}></div>
+```
+编译成
+```js
+react.createClass('div',{...onTap(this.click)}, [])
+```
+因此jsx，可以直接使用Fuck所处的上下文中的变量
