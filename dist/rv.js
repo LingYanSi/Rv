@@ -94,41 +94,43 @@
 
 
 	    var fuck = new Component();
-	    var data = fuck.data,
+	    var _fuck$data = fuck.data,
+	        data = _fuck$data === undefined ? {} : _fuck$data,
 	        method = fuck.method,
 	        template = fuck.template,
 	        components = fuck.components;
 
+	    var that = Object.assign({}, { props: props }, method, { components: components });
 
-	    var state = Object.assign({}, data);
+	    if (_util2.default.isFunction(data)) {
+	        data = data.call(that);
+	    }
 
-	    var _Ob = Ob(state),
+	    var _Ob = Ob(data),
 	        newState = _Ob.newState,
 	        listeners = _Ob.listeners;
 
-	    newState = Object.assign(newState, method);
+	    that = Object.assign(newState, that);
 
 	    // 更该function指向newState
-	    for (var key in newState) {
-	        if (newState.hasOwnProperty(key) && typeof newState[key] == 'function') {
-	            newState[key] = newState[key].bind(newState);
+	    for (var key in that) {
+	        if (that.hasOwnProperty(key) && typeof that[key] == 'function') {
+	            that[key] = that[key].bind(that);
 	        }
 	    }
 
 	    ;['componentDidMount', 'componentWillMount', 'componentWillUnMount', 'componentDidUnMount'].forEach(function (key) {
 	        var fun = fuck[key] || function () {};
-	        newState[key] = fun.bind(newState);
+	        that[key] = fun.bind(newState);
 	    });
 
-	    newState.props = props;
-	    newState.$set = _observe.setDataProperty;
-	    newState.components = components;
-	    newState.componentWillMount();
+	    that.$set = _observe.setDataProperty;
+	    that.componentWillMount();
 
 	    var tokens = (0, _tokenizer2.default)(addQuote(template));
 	    var ast = (0, _parser2.default)(tokens);
 
-	    var _transform = (0, _transform2.transform)(ast, newState, listeners, $parent, components, props),
+	    var _transform = (0, _transform2.transform)(ast, that, listeners, $parent, components, props),
 	        refs = _transform.refs,
 	        events = _transform.events,
 	        children = _transform.children,
@@ -138,12 +140,12 @@
 	    // 添加refs，组件不直接调用dom
 
 
-	    newState.refs = refs;
+	    that.refs = refs;
 
 	    // ele.appendChild(node)
-	    newState.componentDidMount();
+	    that.componentDidMount();
 
-	    return _extends({}, newState, {
+	    return _extends({}, that, {
 	        refs: refs,
 	        events: events,
 	        children: children,
@@ -720,7 +722,7 @@
 	                return true;
 	            }
 
-	            throw new Error('cannot match a close tag');
+	            throw new Error('cannot match a close tag of ' + JSON.stringify(openTag));
 	        }
 
 	        currentNode = cacheNode;
@@ -814,6 +816,7 @@
 	                type: 'Expr',
 	                value: value
 	            };
+	            return true;
 	        }
 
 	        return false;
@@ -986,7 +989,6 @@
 	        }
 
 	        token = next(index);
-	        console.log('闭合', token, tokens[index - 1]);
 	        return false;
 	    }
 

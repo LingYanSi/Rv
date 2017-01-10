@@ -21,42 +21,45 @@ import util from './util'
 function DOMRender(Component, $parent, props = {}) {
 
     let fuck = new Component()
-    let {data, method, template, components } = fuck
+    let {data = {}, method, template, components } = fuck
+    let that = Object.assign({}, {props}, method, {components})
 
-    let state = Object.assign({}, data)
-    let {newState, listeners} = Ob(state)
 
-    newState = Object.assign(newState, method)
+    if (util.isFunction(data)) {
+        data = data.call(that)
+    }
+
+    let {newState, listeners} = Ob(data)
+
+    that = Object.assign(newState, that)
 
     // 更该function指向newState
-    for (let key in newState) {
-        if (newState.hasOwnProperty(key) && typeof newState[key] == 'function') {
-            newState[key] = newState[key].bind(newState)
+    for (let key in that) {
+        if (that.hasOwnProperty(key) && typeof that[key] == 'function') {
+            that[key] = that[key].bind(that)
         }
     }
 
     ;['componentDidMount', 'componentWillMount', 'componentWillUnMount', 'componentDidUnMount'].forEach(key => {
         let fun = fuck[key] || function(){}
-        newState[key] = fun.bind(newState)
+        that[key] = fun.bind(newState)
     })
 
-    newState.props = props
-    newState.$set = setDataProperty
-    newState.components = components
-    newState.componentWillMount();
+    that.$set = setDataProperty
+    that.componentWillMount();
 
     let tokens = tokenizer(addQuote(template))
     let ast = parser(tokens)
-    let {refs, events, children, exprAtrributeQueue, $ele} = transform(ast, newState, listeners, $parent, components, props)
+    let {refs, events, children, exprAtrributeQueue, $ele} = transform(ast, that, listeners, $parent, components, props)
 
     // 添加refs，组件不直接调用dom
-    newState.refs = refs
+    that.refs = refs
 
     // ele.appendChild(node)
-    newState.componentDidMount();
+    that.componentDidMount();
 
     return {
-        ...newState,
+        ...that,
         refs,
         events,
         children,

@@ -55,34 +55,45 @@ class Open extends Component {
     template = `
         <div>
             <p>{props.msg}</p>
-            <input type="text" onInput={input} ref="input"/>
+            <input type="text" onInput={input} ref="title" value={props.title}/>
             <div>{text}</div>
-            <button onClick={close}>关闭</button>
+            <input type="text" value={props.content} ref="content" />
+            <button onClick={submit}>提交</button>
         </div>
     `
-    data = {
-        text: ''
+    data(){
+        return {
+            text: this.props.title
+        }
     }
     method = {
-        close(){
+        submit(){
+            let title = this.refs.title.value
+            let content = this.refs.content.value
+            ps.trigger('list::change', {
+                title,
+                content,
+                id: this.props.id
+            })
             Modal.close()
         },
         input(){
-            this.text = this.refs.input.value
+            this.text = this.refs.title.value
         }
     }
 }
 
 class Item extends Component {
     template = `
-        <li style={styles} complete-style={complateStyle} onClick={fuck}>
+        <li style={styles} complete-style={complateStyle} >
             <div>
-                <h4>{props.i + 1} : {props.item.title}</h4>
+                <h4>{props.i + 1} : {props.title}</h4>
                 <p>
-                    {props.item.content}
+                    {props.content}
                 </p>
             </div>
-            <button onclick={props.del} data-index={props.item.id}>删除</button>
+            <button onclick={props.del} data-index={props.id}>删除</button>
+            <button onclick={edit}>编辑</button>
         </li>
     `
     data = {
@@ -97,12 +108,10 @@ class Item extends Component {
         },
     }
     method = {
-        fuck(){
+        edit(){
             Modal.open('body', '', {
                 Body: Open,
-                props: {
-                    msg: 'test 组件传递是否正常'
-                }
+                props: this.props
             })
         }
     }
@@ -121,7 +130,7 @@ class Home extends Component {
         <button onClick={add}>提交</button>
         <div style="line-height: 2;" v-click="11111" onclick={click} >{input}</div>
         <ul v-for="(item i) in showList">
-            <Item i={i} item={item} del={del}></Item>
+            <Item i={i} {...item} del={del} />
         </ul>
         <div>
             <button class={currentFilter == 'today' && 'current' } onClick={filter.bind(this, 'today')}>今天</button>
@@ -159,8 +168,12 @@ class Home extends Component {
             this.input = event.target.value
         },
         del(event) {
-            this.list = this.list.filter(ele => ele.id != +event.target.dataset['index'])
-            this.filter()
+            Modal.open('alert', '确定要删除?', {
+                submit: ()=>{
+                    this.list = this.list.filter(ele => ele.id != +event.target.dataset['index'])
+                    this.filter()
+                }
+            })
         },
         add(event){
             this.list.push({
@@ -212,8 +225,27 @@ class Home extends Component {
     // 生命周期
     componentDidMount(){
         this.startTime()
-        ps.on('fuck:you', function(data){
-            alert('wocao')
+        ps.on('list::change', (data)=>{
+            let {id, title, content} = data
+            let index
+            let item
+            let match = this.list.some((_item, _index) => {
+                if (_item.id === id) {
+                    index = _index
+                    item = _item
+                    return true
+                }
+            })
+
+            if (match) {
+                item = Object.assign(item, {
+                    title,
+                    content
+                })
+                this.list.splice(index, 1 , item)
+                this.filter()
+            }
+
         })
 
         this.$set(this, 'name', 'fuck you bithc')

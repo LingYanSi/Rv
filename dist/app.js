@@ -1060,17 +1060,31 @@
 	            args[_key3] = arguments[_key3];
 	        }
 
-	        return _ret3 = (_temp3 = (_this3 = _possibleConstructorReturn(this, (_ref3 = Open.__proto__ || Object.getPrototypeOf(Open)).call.apply(_ref3, [this].concat(args))), _this3), _this3.template = '\n        <div>\n            <p>{props.msg}</p>\n            <input type="text" onInput={input} ref="input"/>\n            <div>{text}</div>\n            <button onClick={close}>\u5173\u95ED</button>\n        </div>\n    ', _this3.data = {
-	            text: ''
-	        }, _this3.method = {
-	            close: function close() {
+	        return _ret3 = (_temp3 = (_this3 = _possibleConstructorReturn(this, (_ref3 = Open.__proto__ || Object.getPrototypeOf(Open)).call.apply(_ref3, [this].concat(args))), _this3), _this3.template = '\n        <div>\n            <p>{props.msg}</p>\n            <input type="text" onInput={input} ref="title" value={props.title}/>\n            <div>{text}</div>\n            <input type="text" value={props.content} ref="content" />\n            <button onClick={submit}>\u63D0\u4EA4</button>\n        </div>\n    ', _this3.method = {
+	            submit: function submit() {
+	                var title = this.refs.title.value;
+	                var content = this.refs.content.value;
+	                ps.trigger('list::change', {
+	                    title: title,
+	                    content: content,
+	                    id: this.props.id
+	                });
 	                _Modal2.default.close();
 	            },
 	            input: function input() {
-	                this.text = this.refs.input.value;
+	                this.text = this.refs.title.value;
 	            }
 	        }, _temp3), _possibleConstructorReturn(_this3, _ret3);
 	    }
+
+	    _createClass(Open, [{
+	        key: 'data',
+	        value: function data() {
+	            return {
+	                text: this.props.title
+	            };
+	        }
+	    }]);
 
 	    return Open;
 	}(Component);
@@ -1089,7 +1103,7 @@
 	            args[_key4] = arguments[_key4];
 	        }
 
-	        return _ret4 = (_temp4 = (_this4 = _possibleConstructorReturn(this, (_ref4 = Item.__proto__ || Object.getPrototypeOf(Item)).call.apply(_ref4, [this].concat(args))), _this4), _this4.template = '\n        <li style={styles} complete-style={complateStyle} onClick={fuck}>\n            <div>\n                <h4>{props.i + 1} : {props.item.title}</h4>\n                <p>\n                    {props.item.content}\n                </p>\n            </div>\n            <button onclick={props.del} data-index={props.item.id}>\u5220\u9664</button>\n        </li>\n    ', _this4.data = {
+	        return _ret4 = (_temp4 = (_this4 = _possibleConstructorReturn(this, (_ref4 = Item.__proto__ || Object.getPrototypeOf(Item)).call.apply(_ref4, [this].concat(args))), _this4), _this4.template = '\n        <li style={styles} complete-style={complateStyle} >\n            <div>\n                <h4>{props.i + 1} : {props.title}</h4>\n                <p>\n                    {props.content}\n                </p>\n            </div>\n            <button onclick={props.del} data-index={props.id}>\u5220\u9664</button>\n            <button onclick={edit}>\u7F16\u8F91</button>\n        </li>\n    ', _this4.data = {
 	            styles: {
 	                background: '',
 	                padding: '10px',
@@ -1100,12 +1114,10 @@
 	                background: 'rgb(144, 212, 143)'
 	            }
 	        }, _this4.method = {
-	            fuck: function fuck() {
+	            edit: function edit() {
 	                _Modal2.default.open('body', '', {
 	                    Body: Open,
-	                    props: {
-	                        msg: 'test 组件传递是否正常'
-	                    }
+	                    props: this.props
 	                });
 	            }
 	        }, _temp4), _possibleConstructorReturn(_this4, _ret4);
@@ -1128,7 +1140,7 @@
 	            args[_key5] = arguments[_key5];
 	        }
 
-	        return _ret5 = (_temp5 = (_this5 = _possibleConstructorReturn(this, (_ref5 = Home.__proto__ || Object.getPrototypeOf(Home)).call.apply(_ref5, [this].concat(args))), _this5), _this5.template = '<div>\n        <header>\n            Rv\n        </header>\n        <H1 width="100">\n            <span onClick={slotClick}>\u6211\u662F\u6807\u9898</span>\n        </H1>\n        <input type="text" placeholder={name} value={input} v-if={vIf} onKeyUp={keyup} ref="input" />\n        <input type="text" style="border: 20px solid red; " placeholder={name} value={input} v-if={!vIf} onKeyUp={keyup} ref="input" />\n        <button onClick={add}>\u63D0\u4EA4</button>\n        <div style="line-height: 2;" v-click="11111" onclick={click} >{input}</div>\n        <ul v-for="(item i) in showList">\n            <Item i={i} item={item} del={del}></Item>\n        </ul>\n        <div>\n            <button class={currentFilter == \'today\' && \'current\' } onClick={filter.bind(this, \'today\')}>\u4ECA\u5929</button>\n            <button class={currentFilter == \'date\' && \'current\' } onClick={filter.bind(this, \'date\')}>\u672C\u5468</button>\n            <button class={currentFilter == \'month\' && \'current\' } onClick={filter.bind(this, \'month\')}>\u672C\u6708</button>\n            <button class={currentFilter == \'all\' && \'current\' } onClick={filter.bind(this, \'all\')}>\u5168\u90E8</button>\n        </div>\n        <p>\u5012\u8BA1\u65F6{time}\u79D2 <button onClick={reset}>reset</button></p>\n    </div>', _this5.data = {
+	        return _ret5 = (_temp5 = (_this5 = _possibleConstructorReturn(this, (_ref5 = Home.__proto__ || Object.getPrototypeOf(Home)).call.apply(_ref5, [this].concat(args))), _this5), _this5.template = '<div>\n        <header>\n            Rv\n        </header>\n        <H1 width="100">\n            <span onClick={slotClick}>\u6211\u662F\u6807\u9898</span>\n        </H1>\n        <input type="text" placeholder={name} value={input} v-if={vIf} onKeyUp={keyup} ref="input" />\n        <input type="text" style="border: 20px solid red; " placeholder={name} value={input} v-if={!vIf} onKeyUp={keyup} ref="input" />\n        <button onClick={add}>\u63D0\u4EA4</button>\n        <div style="line-height: 2;" v-click="11111" onclick={click} >{input}</div>\n        <ul v-for="(item i) in showList">\n            <Item i={i} {...item} del={del} />\n        </ul>\n        <div>\n            <button class={currentFilter == \'today\' && \'current\' } onClick={filter.bind(this, \'today\')}>\u4ECA\u5929</button>\n            <button class={currentFilter == \'date\' && \'current\' } onClick={filter.bind(this, \'date\')}>\u672C\u5468</button>\n            <button class={currentFilter == \'month\' && \'current\' } onClick={filter.bind(this, \'month\')}>\u672C\u6708</button>\n            <button class={currentFilter == \'all\' && \'current\' } onClick={filter.bind(this, \'all\')}>\u5168\u90E8</button>\n        </div>\n        <p>\u5012\u8BA1\u65F6{time}\u79D2 <button onClick={reset}>reset</button></p>\n    </div>', _this5.data = {
 	            // name: '西方哪个国家',
 	            input: '',
 	            vIf: true,
@@ -1154,10 +1166,16 @@
 	                this.input = event.target.value;
 	            },
 	            del: function del(event) {
-	                this.list = this.list.filter(function (ele) {
-	                    return ele.id != +event.target.dataset['index'];
+	                var _this6 = this;
+
+	                _Modal2.default.open('alert', '确定要删除?', {
+	                    submit: function submit() {
+	                        _this6.list = _this6.list.filter(function (ele) {
+	                            return ele.id != +event.target.dataset['index'];
+	                        });
+	                        _this6.filter();
+	                    }
 	                });
-	                this.filter();
 	            },
 	            add: function add(event) {
 	                this.list.push({
@@ -1191,11 +1209,11 @@
 	                }
 	            },
 	            startTime: function startTime() {
-	                var _this6 = this;
+	                var _this7 = this;
 
 	                var interval = setInterval(function () {
-	                    if (_this6.time == 0) return clearInterval(interval);
-	                    _this6.time--;
+	                    if (_this7.time == 0) return clearInterval(interval);
+	                    _this7.time--;
 	                    nextTick(function () {
 	                        console.log('wocao');
 	                    });
@@ -1214,21 +1232,42 @@
 
 	        // 生命周期
 	        value: function componentDidMount() {
-	            var _this7 = this;
+	            var _this8 = this;
 
 	            this.startTime();
-	            ps.on('fuck:you', function (data) {
-	                alert('wocao');
+	            ps.on('list::change', function (data) {
+	                var id = data.id,
+	                    title = data.title,
+	                    content = data.content;
+
+	                var index = void 0;
+	                var item = void 0;
+	                var match = _this8.list.some(function (_item, _index) {
+	                    if (_item.id === id) {
+	                        index = _index;
+	                        item = _item;
+	                        return true;
+	                    }
+	                });
+
+	                if (match) {
+	                    item = Object.assign(item, {
+	                        title: title,
+	                        content: content
+	                    });
+	                    _this8.list.splice(index, 1, item);
+	                    _this8.filter();
+	                }
 	            });
 
 	            this.$set(this, 'name', 'fuck you bithc');
 
 	            setTimeout(function () {
-	                _this7.name = '哈哈哈';
-	                console.log('placeholder', _this7.refs.input.getAttribute('placeholder'));
+	                _this8.name = '哈哈哈';
+	                console.log('placeholder', _this8.refs.input.getAttribute('placeholder'));
 	                // 此处有bug
 	                nextTick(function () {
-	                    console.log('placeholder', _this7.refs.input.getAttribute('placeholder'));
+	                    console.log('placeholder', _this8.refs.input.getAttribute('placeholder'));
 	                });
 	            }, 2000);
 	        }

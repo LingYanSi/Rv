@@ -51,7 +51,7 @@ function parser(tokens) {
                 return true
             }
 
-            throw new Error('cannot match a close tag')
+            throw new Error(`cannot match a close tag of ${JSON.stringify(openTag)}`)
         }
 
         currentNode = cacheNode
@@ -138,6 +138,7 @@ function parser(tokens) {
                  type: 'Expr',
                  value
              }
+             return true
         }
 
         return false
@@ -280,7 +281,6 @@ function parser(tokens) {
         }
 
         token = next(index)
-        console.log('闭合', token, tokens[index - 1])
         return false
     }
 
