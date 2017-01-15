@@ -26,7 +26,7 @@ const __RvHook__ = '__RvHook__'
 class Observe {
     constructor(data, callback, deepObserve = false){
         this.callback = callback
-        let newData = this.observeObject(data, deepObserve)
+        let newData =  this.newData = this.observeObject(data, deepObserve)
 
         let {observeKey, triggerCallback} = this
         // 埋一个不可枚举的属性，用来添加新属性
@@ -36,10 +36,10 @@ class Observe {
             } ,
             enumerable: false
         })
-        return newData
+        // return newData
     }
-    triggerCallback = (itemPrevKey, array, oldValue)=>{
-        this.callback && this.callback(itemPrevKey, array, oldValue)
+    triggerCallback = (...args)=>{
+        this.callback && this.callback(...args)
     }
     observeObject(data, deepObserve = false, prevKey = '', isSet = false) {
         let newData = {}
@@ -100,8 +100,8 @@ class Observe {
         ;['push', 'pop', 'splice', 'reverse', 'shift', 'unshift'].forEach(key =>{
             Object.defineProperty(array, key, {
                 get(){
+                    let oldValue = [...array]
                     return function(...args){
-                        let oldValue = [...array]
                         let result = Array.prototype[key].call(array, ...args)
                         that.triggerCallback(itemPrevKey, array, oldValue)
                         return result

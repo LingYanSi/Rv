@@ -4,7 +4,7 @@ import Nav from './Nav'
 import Home from './Pages/Home'
 import Movies from './Pages/Movies'
 import Mine from './Pages/Mine'
-let {Component, DOMRender, ps, set, nextTick} = window.Rv
+let {Component, DOMRender, ps, set, nextTick, tick} = window.Rv
 
 class Page extends Component {
     template = `<div style="padding-bottom: 50px;">
@@ -40,6 +40,7 @@ class Page extends Component {
         let pageIndex = 1
         let cacheScrollTop = 0
         let match = cache.some((item , index)=> {
+            console.log(url, item.url)
             if(url == item.url){
                 pageIndex = item.pageIndex
                 cacheScrollTop = item.scrollTop
@@ -79,9 +80,13 @@ class Page extends Component {
                 prev.onHide && prev.onHide()
             }
 
+            console.log('哈哈哈哈哈', current, pageIndex);
+
             current.onShow && current.onShow()
             current.$ele.style.cssText += 'display: block;'
             that.prev = current
+
+            console.log(url)
             that.cache.push({
                 url,
                 pageIndex,
@@ -91,6 +96,8 @@ class Page extends Component {
                 document.body.scrollTop = cacheScrollTop
             }
         })
+
+        tick.exec()
 
         return that
     }
@@ -178,3 +185,10 @@ window.router = (function(){
 DOMRender(App, document.querySelector('#app'))
 
 router.replace('/', '首頁')
+
+try{
+    var utterThis = new window.SpeechSynthesisUtterance('宋小帆、李倩倩、陈莹');
+    window.speechSynthesis.speak(utterThis);
+}catch(err){
+    // alert(11)
+}

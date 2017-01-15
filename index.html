@@ -42,11 +42,13 @@
     <div id="example"></div>
     <script type="text/javascript">
         window.routers = {}
+        console.time('Date.now()')
     </script>
-    <script src="//lib.baomitu.com/es6-shim/0.35.1/es6-shim.min.js"></script>
+    <!-- <script src="//lib.baomitu.com/es6-shim/0.35.1/es6-shim.min.js"></script> -->
     <script src="./dist/rv.js" charset="utf-8"></script>
     <script src="./dist/app.js" charset="utf-8"></script>
     <script type="text/javascript">
+        console.timeEnd('Date.now()')
 
         // var script = document.createElement('script')
         // script.src = './index.js'

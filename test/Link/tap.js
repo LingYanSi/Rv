@@ -31,9 +31,9 @@ function onTap(func){
             onTouchMove(){
                 notMove = false
             },
-            onTouchEnd(...args){
+            onTouchEnd(event){
                 if(scroll) return
-                notMove && (new Date().getTime() - startTime < 600) && func(...args)
+                notMove && (new Date().getTime() - startTime < 600) && func(event)
             }
         }
     } else {

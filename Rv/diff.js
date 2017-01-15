@@ -1,42 +1,90 @@
 
 /**
- * [diff description]
+ * [diff 比较数组，返回数组的修改意见]
  * @method diff
  * @param  {Array}  [newList=[]] [description]
  * @param  {Array}  [oldList=[]] [description]
  * @return {[type]}              [description]
  */
-function diff(newList = [], oldList = []){
-    // [10, 1, 2, 3, 4]
-    // [2, 1, 5, 4, 3, 11, 22]
-    // oldList 与 newList进行比对
-    // 先删除
-    let arr = []
-    oldList.forEach((item, index) => {
+function diff(NEW_LIST = [], OLD_LIST = []){
+    // old: [10, 1, 2, 3, 4]
+    // new: [2, 1, 5, 4, 3, 11, 22]
+    // 删除 -> 移动 -> 新增
+    let newList = [...NEW_LIST]
+    let oldList = [...OLD_LIST]
+
+    let needDeleteList = []
+    oldList = oldList.filter((item, index) => {
         if (!newList.includes(item)) {
-            arr.push({
-                type: 'DELETE',
-                index
+            needDeleteList.push({
+                index,
+                item
             })
+            return false
         }
+        return true
     })
+
+    let {needMoveList, movedList} = move(newList, oldList)
+
+    let needAddList = []
 
     newList.forEach((item, index) => {
-        // 查询能不能找到，能找到move，否则add
-        let oldIndex = oldList.indexOf(item)
-        if (oldIndex < 0) {
-            arr.push({
-                type: 'INSERT',
-                index
-            })
-        } else {
-            arr.push({
-                type: 'MOVE',
-                arr: [oldIndex, index]
+        if (!movedList.includes(item)) {
+            needAddList.push({
+                index,
+                item
             })
         }
     })
 
+    return {
+        needDeleteList,
+        needMoveList,
+        needAddList,
+    }
 }
+
+function move(NEW_LIST = [], OLD_LIST = []){
+    let newList = [...NEW_LIST]
+    let oldList = [...OLD_LIST]
+    let needMoveList = []
+
+    let target
+    let targetPrev
+    let current
+    let currentPrev
+
+    let index = 0
+    let LEN = newList.length
+    while (index < LEN) {
+        target = newList[index]
+        targetPrev = newList[index - 1]
+        current = target
+        let oldIndex = oldList.indexOf(current)
+        if (oldIndex> -1) {
+            currentPrev = oldList[oldIndex - 1]
+
+            if (targetPrev !== currentPrev ) {
+                oldList.splice(oldIndex, 1)
+                oldList.splice(index, 0 , target)
+                needMoveList.push({
+                    oldIndex,
+                    index
+                })
+                console.log(current, `${oldIndex}移动等到${index}`)
+            }
+        }
+
+        index++
+    }
+
+    return {
+        needMoveList,
+        movedList: oldList
+    }
+}
+
+diff([3, 1, 2, 5, 7, 8], [1, 2, 3, 4])
 
 export default diff

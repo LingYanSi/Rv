@@ -8,9 +8,9 @@ class Tick {
         this.queue = []
         this.nextTickQueue = []
     }
-    push(fn){
+    push(keys, fn){
         let {queue} = this
-        queue.push(fn)
+        queue.push({keys, fn})
 
         clearTimeout(this.setTimeout)
         this.setTimeout = setTimeout(()=>{
@@ -20,14 +20,21 @@ class Tick {
         return this
     }
     exec(){
-        this.queue.forEach(fn => fn())
+        // 先缓存，后执行，方便后续添加
+        let cacheQueue = this.queue
+        let cacheNextTickQueue = this.nextTickQueue
+
         this.queue = []
+        this.nextTickQueue = []
+
+        cacheQueue.forEach(item => {
+            item.fn()
+        })
         // 执行所有id小于this.setTimeout的毁掉函数
-        this.nextTickQueue.forEach(item => {
+        cacheNextTickQueue.forEach(item => {
             let {id, fn} = item
             id <= this.setTimeout && fn()
         })
-        this.nextTickQueue = []
 
         return this
     }

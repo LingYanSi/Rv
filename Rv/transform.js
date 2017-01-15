@@ -2,6 +2,8 @@
 import getDependenceVarible from './getDependenceVarible'
 import Tick from './tick'
 import util from './util'
+import diff from './diff'
+import $ from './$'
 
 let tick = new Tick()
 /**
@@ -20,11 +22,6 @@ function transform(ast, state, listeners, $parent, components, props) {
 
     // 处理子节点
     function handleChildren(array, $ele, node, ctx){
-        let FORatrribute = node.atrributes && node.atrributes[FOR]
-
-        if (FORatrribute) {
-            return handleVFor(FORatrribute, $ele, array[0], ctx)
-        }
 
         let eles = array.map(i => {
             return handleElement(i, [...ctx], $ele)
@@ -34,11 +31,32 @@ function transform(ast, state, listeners, $parent, components, props) {
     }
 
     // 处理元素节点
-    function handleElement(node, ctx, $parent, isVIF = false){
+    function handleElement(node, ctx, $parent, isVIF = false, isVFOR = false){
         // 可以访问父节点
+        $parent = $parent || document.createDocumentFragment()
+
         let ele
         let {children, atrributes, name, type} = node
         if (name) {
+
+            // 处理slot
+            if (name == 'slot') {
+                handleChildren(props.children, $parent, node, props.ctx)
+                return
+            }
+
+            let FORatrribute = node.atrributes && node.atrributes[FOR]
+
+            if (!isVFOR && FORatrribute) {
+                return handleVFor(FORatrribute, $parent, node, ctx)
+            }
+
+            // 处理if
+            if (!isVIF && atrributes[IF]) {
+                handleVIf(atrributes[IF], $parent, node , ctx)
+                return
+            }
+
             // 处理子组件
             if (/^[A-Z]/.test(name)) {
                 // throw new Error(`cannot handle tagName of ${name}`)
@@ -49,24 +67,21 @@ function transform(ast, state, listeners, $parent, components, props) {
                 let child = window.Rv.DOMRender(components[name], $parent, props)
                 // 处理ref
                 if (props.ref) {
-                    refs[props.ref] = child 
+                    refs[props.ref] = child
                 }
                 // 子组件放在父组件的children中，方便卸载
                 // 组件卸载：事件 + dom
                 __children.push(child)
-                return
-            }
 
-            // 处理slot
-            if (name == 'slot') {
-                handleChildren(props.children, $parent, node, props.ctx)
-                return
-            }
+                // 不处理for循环里的属性
+                if (!atrributes[FOR]) {
+                    // 处理props
+                    handleAttributes(atrributes, child.$ele, ctx, true, function(key, newValue, oldValue){
+                        handlePropsUpdate(child, key, newValue, oldValue)
+                    })
+                }
 
-            // 处理if
-            if (!isVIF && atrributes[IF]) {
-                handleVIf(atrributes[IF], $parent, node , ctx)
-                return
+                return child.$ele
             }
 
             ele = document.createElement(name)
@@ -78,6 +93,7 @@ function transform(ast, state, listeners, $parent, components, props) {
                 $parent.parentNode.insertBefore(ele, $parent)
                 return ele
             }
+
         } else {
             ele = handleTextNode(node, ctx)
         }
@@ -127,10 +143,74 @@ function transform(ast, state, listeners, $parent, components, props) {
                     newCtx[VAR] = i
                 }
 
-                return handleElement(node, [...ctx, newCtx], $parent)
+                return handleElement(node, [...ctx, newCtx], $parent, false, true)
             })
 
             return $parent
+        }
+
+        // 处理list
+        function handleList(newValue, oldValue, $parent){
+            let {
+                needDeleteList,
+                needMoveList,
+                needAddList,
+            } = diff(newValue, oldValue)
+
+            let childNodes = $parent.children
+
+            // 需要删除的列表
+            let cacheList = [...childNodes]
+            needDeleteList.forEach(item => {
+                cacheList.forEach(($child, index) => {
+                    if (index == item.index) {
+                        unmount.element($child)
+                        $.remove($child)
+                    }
+                })
+            })
+
+            // 处理需要移动元素
+            needMoveList.forEach(item => {
+                [...childNodes].forEach(($child, index) => {
+                    if (index == item.oldIndex) {
+                        $.move($parent, index, item.index)
+                        // 需要更新index
+                    }
+                })
+            })
+
+            // 处理添加元素
+            needAddList.forEach((data) => {
+                let newCtx = {}
+                if (/^\([^\)]+\)$/.test(VAR)) {
+                    let arr = VAR.slice(1, -1).split(/\s+/).filter(i => i)
+
+                    let itemName = arr[0]
+                    let indexName = arr[1]
+
+                    itemName && (newCtx[itemName] = data.item)
+                    indexName && (newCtx[indexName] = data.index)
+                } else {
+                    newCtx[VAR] = data.item
+                }
+
+                let $ele = handleElement(node, [...ctx, newCtx], null, false , true)
+                $.insert($parent, $ele, data.index)
+            })
+
+            //  暂时只能去更新index属性，但其实是不应该如此的
+            ;[...$parent.children].forEach(($child, index) => {
+                if (/^\([^\)]+\)$/.test(VAR)) {
+                    let arr = VAR.slice(1, -1).split(/\s+/).filter(i => i)
+
+                    let itemName = arr[0]
+                    let indexName = arr[1]
+
+                    triggerCallback($child, indexName, index)
+                }
+
+            })
         }
 
 
@@ -138,13 +218,27 @@ function transform(ast, state, listeners, $parent, components, props) {
             attributeName: FOR,
             $ele: $parent
         }, ctx, function(matched, newValue, oldValue){
-            // 监听数据变化
-            unmount.children($parent)
-            render(newValue)
+            // 处理列表变化
+            handleList(newValue, oldValue, $parent)
         })
 
         render(result)
     }
+
+    // 更新for循环内的元素
+    function triggerCallback($ele, indexName, index){
+        let newCtx = {}
+        newCtx[indexName] = index
+
+        state.__triggerCallback(`${indexName}`, index, 0, $ele.__RVID, newCtx)
+        if (!($ele.__Rv instanceof RvElementHook)) {
+            let children = [...$ele.childNodes]
+            children.length && children.forEach($child => {
+                triggerCallback($child, indexName, index)
+            })
+        }
+    }
+
 
     // 处理if指令，不管元素是否渲染，都会留下两个占位的注释节点
     function handleVIf(VIF, $parent, node, ctx){
@@ -198,39 +292,50 @@ function transform(ast, state, listeners, $parent, components, props) {
         let {$ele, type, attributeName} = watchParams
 
         let timeout = null
-        IS_LISTEN && listeners.push($ele, $ele.__RVID, (key, newValue, oldValue)=>{
+        IS_LISTEN && listeners.push($ele, $ele.__RVID, (key, newValue, oldValue, RVID = undefined, newCtx = {})=>{
+            // newCtx 用来更新上下文
+            // RVID 用来更新指定节点
             let keys = key.split(',').filter(i => i).join('.')
             let matched = exprKeys.some(i => keys.startsWith(i))
 
             // 数据来了
             if (!matched) return
+            if (RVID !== undefined && $ele.__RVID !== RVID) return
 
+            let {cacheAtrribute} = watchParams
             // 数据更新后，惰性更新
-            clearTimeout(timeout)
-            timeout = setTimeout(()=>{
-                tick.push(()=>{
-                    let {cacheAtrribute} = watchParams
-                    let newCtx = ctx.slice(1)
-                    newCtx.unshift(state)
+            // clearTimeout(timeout)
+            // timeout = setTimeout(()=>{
+            //
+            // })
+            tick.push(keys, ()=>{
 
-                    let newParam = Object.assign({}, ...newCtx)
-                    let newAttribute = watchParams.cacheAtrribute = a(newParam)
+                let Ctx = ctx.slice(1)
+                Ctx.unshift(state)
 
-                    // 处理回调
-                    if(callback) {
-                        return callback(matched, newAttribute, cacheAtrribute)
+                let newParam = Object.assign({}, ...Ctx, newCtx)
+                let newAttribute = watchParams.cacheAtrribute = a(newParam)
+
+                // 处理回调
+                if(callback) {
+                    // 对于数组来说，我们需要newValue与oldValue，而不是with下的表达式的值
+                    if (attributeName == FOR) {
+                        callback(keys, newValue, oldValue)
+                    } else {
+                        callback(keys, newAttribute, cacheAtrribute)
                     }
+                    return
+                }
 
-                    // 更新文本节点
-                    if(type == TYPE_TEXT_NODE) {
-                        $ele.textContent = newAttribute
-                    }
+                // 更新文本节点
+                if(type == TYPE_TEXT_NODE) {
+                    $ele.textContent = newAttribute
+                }
 
-                    // 更新属性
-                    if(type == TYPE_ATTR) {
-                        handleSpecialAttr(attributeName, newAttribute || '', $ele, cacheAtrribute)
-                    }
-                })
+                // 更新属性
+                if(type == TYPE_ATTR) {
+                    handleSpecialAttr(attributeName, newAttribute || '', $ele, cacheAtrribute)
+                }
             })
         })
 
@@ -245,13 +350,34 @@ function transform(ast, state, listeners, $parent, components, props) {
     //      | ()
     // operator : + | - | * | / | && | || | ++ | -- | ! | !!!
 
-    function Analysis(expr) {
+    /**
+     * [Analysis 分析表达式，获取依赖数组]
+     * @method Analysis
+     * @param  {String} expr [description]
+     */
+    function Analysis(expr = '') {
         // 分析表达式，获取依赖被依赖属性数组，当数据发生变化的时候和数组进行比对，如果匹配成功就更新节点
         return getDependenceVarible(expr)
     }
 
-    // 获取所有属性的值
-    function getAttributes(atrributes, ctx){
+    /**
+     * [handlePropsUpdate 处理props更新]
+     * @method handlePropsUpdate
+     * @return {[type]}          [description]
+     */
+    function handlePropsUpdate(component, key, newValue, oldValue){
+        component.props[key] = newValue
+        component.__triggerCallback(`props,${key}`, newValue, oldValue)
+    }
+
+    /**
+     * [getAttributes 获取所有属性的值]
+     * @method getAttributes
+     * @param  {Object}      [atrributes={}] [description]
+     * @param  {Array}       [ctx=[]]        [description]
+     * @return {Array}                      [description]
+     */
+    function getAttributes(atrributes = {}, ctx = []){
         let atts = {}
         Object.keys(atrributes).map(key => {
             let v = atrributes[key]
@@ -288,8 +414,15 @@ function transform(ast, state, listeners, $parent, components, props) {
         return atts
     }
 
-    // 处理属性
-    function handleAttributes(atrributes, $ele, ctx){
+    /**
+     * [handleAttributes 处理属性]
+     * @method handleAttributes
+     * @param  {Object}         [atrributes={}] [description]
+     * @param  {Dom}            $ele            [description]
+     * @param  {Array}          ctx             [上下文环境]
+     * @return {[type]}                         [description]
+     */
+    function handleAttributes(atrributes = {}, $ele, ctx = [], isComponent = false , callback){
         // 需要先处理object spread
         Object.keys(atrributes).filter(i => {
             return i != FOR && i != IF
@@ -299,17 +432,20 @@ function transform(ast, state, listeners, $parent, components, props) {
                 let {type, value} = v
                 value = value || ''
                 if (type == 'String') {
-                    $ele.setAttribute(key, value)
+                    !isComponent && $ele.setAttribute(key, value)
                 }
 
                 if (type == 'Expr') {
                     // 处理Object spread
                     if (value.startsWith('...')) {
                         value = value.slice(3)
+
+                        // 暂不支持对spread props的变更追踪
                         let result = handleExpr(value, {
                             type: TYPE_ATTR,
+                            $ele,
                             attributeName: key,
-                        }, ctx, null, false)
+                        }, ctx, isComponent && callback)
 
                         Object.keys(result).forEach(key => {
                             handleSpecialAttr(key, result[key], $ele )
@@ -320,21 +456,28 @@ function transform(ast, state, listeners, $parent, components, props) {
                             type: TYPE_ATTR,
                             $ele,
                             attributeName: key,
-                        }, ctx)
+                        }, ctx, isComponent && callback)
                     }
                 }
 
                 // 处理特殊的属性
-                handleSpecialAttr(key, value, $ele )
+                !isComponent && handleSpecialAttr(key, value, $ele )
 
             } else {
-                $ele.setAttribute(key, "")
+                !isComponent && $ele.setAttribute(key, "")
             }
         })
     }
 
-    // 处理特殊的属性
-    function handleSpecialAttr(key, value, $ele){
+    /**
+     * [handleSpecialAttr 处理特殊属性]
+     * @method handleSpecialAttr
+     * @param  {String}          key   [description]
+     * @param  {*}          value [description]
+     * @param  {Dom}          $ele  [description]
+     * @return {[type]}                [description]
+     */
+    function handleSpecialAttr(key = '', value, $ele){
         if (key.startsWith('on')) {
             // 移除掉之前的事件
             events.off(key.slice(2).toLowerCase(), $ele.__RVID )
@@ -351,18 +494,47 @@ function transform(ast, state, listeners, $parent, components, props) {
                 $ele.clientWidth
                 handleStyle($ele, value)
             }, 0)
-        }else  if (key == REF) {
+        } else if (key == 'class'){
+            // 初始样式
+            handleClass($ele, value)
+        } else if (key == REF) {
             refs[value] = $ele
         } else {
             $ele.setAttribute(key, value)
         }
     }
 
-    function handleClass(){
+    /**
+     * [handleClass 处理className]
+     * @method handleClass
+     * @param  {Dom}    $ele       [description]
+     * @param  {String}    [value=''] [description]
+     * @return {String}               [description]
+     */
+    function handleClass($ele, value = ''){
+        let className = ''
+        if (typeof value == 'object') {
+            className = Object.keys(value).map(key => {
+                let newKey = key.replace(/[A-Z]/g, char => {
+                    return '-' + char.toLowerCase()
+                })
+                return value[key] ? newKey : ''
+            }).filter(key => key).join(' ')
+        } else {
+            className = value || ''
+        }
 
+        $ele.className = className
+        return className
     }
 
-    // 处理样式
+    /**
+     * [handleStyle 处理样式Style]
+     * @method handleStyle
+     * @param  {Dom}    $ele       [description]
+     * @param  {String}    [value=''] [description]
+     * @return {String}               [description]
+     */
     function handleStyle($ele, value = ''){
         let style = ''
         if (typeof value == 'object') {
@@ -380,6 +552,8 @@ function transform(ast, state, listeners, $parent, components, props) {
         }
 
         $ele.style.cssText += style
+
+        return style
     }
 
     // 返回element list
@@ -416,6 +590,9 @@ function transform(ast, state, listeners, $parent, components, props) {
     }
 }
 
+/**
+ * 在父元素上留一个钩子
+ */
 class RvElementHook {
     constructor(listeners, events, children, state , unmount){
         this.isComponentRoot = true
@@ -447,6 +624,8 @@ class Unmount {
             let {componentWillUnMount, componentDidUnMount} = $parent.__Rv.component
             // 组件将要卸载
             componentWillUnMount()
+
+            this.listeners.unmount($parent.__RVID)
 
             $parent.__Rv.listeners.unmountAll()
             $parent.__Rv.events.unmountAll()

@@ -29,7 +29,7 @@ function DOMRender(Component, $parent, props = {}) {
         data = data.call(that)
     }
 
-    let {newState, listeners} = Ob(data)
+    let {newState, listeners, triggerCallback} = Ob(data)
 
     that = Object.assign(newState, that)
 
@@ -45,6 +45,7 @@ function DOMRender(Component, $parent, props = {}) {
         that[key] = fun.bind(newState)
     })
 
+    that.__triggerCallback = triggerCallback
     that.$set = setDataProperty
     that.componentWillMount();
 
@@ -86,13 +87,13 @@ function addQuote(template) {
 function Ob(state) {
     let listeners = new ExprAtrributeQueue()
 
-    let newState = new Observe(state, (...args) => {
+    let {newData, triggerCallback} = new Observe(state, (...args) => {
         listeners.cache.forEach((listener, index) => {
             listener.callback(...args)
         })
     }, true)
 
-    return {newState, listeners}
+    return {newState: newData, listeners, triggerCallback}
 }
 
 // 属性为一个表达式的情况
@@ -161,6 +162,7 @@ window.Rv = {
     nextTick(fn){
         tick.pushNextTick(fn)
     },
+    tick,
     unmount: unmountElement,
     set: setDataProperty,
     ps: new Pubsub(),

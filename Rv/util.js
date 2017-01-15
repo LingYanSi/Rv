@@ -19,15 +19,15 @@ function isBoolean(obj){
     return !!getType(obj).match('boolean')
 }
 
-function isPromise(){
+function isPromise(obj){
     return !!getType(obj).match('promise')
 }
 
-function isAsyncFunction(){
+function isAsyncFunction(obj){
     return !!getType(obj).match('asyncfunction')
 }
 
-function isGeneratorFunction(){
+function isGeneratorFunction(obj){
     return !!getType(obj).match('generatorfunction')
 }
 
@@ -40,4 +40,4 @@ export default {
     isPromise,
     isAsyncFunction,
     isGeneratorFunction,
-} 
+}

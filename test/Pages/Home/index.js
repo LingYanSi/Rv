@@ -1,5 +1,6 @@
 import Modal from './../../Modal'
 let {Component, DOMRender, ps, set, nextTick} = window.Rv
+import onTap from './../../Link/tap'
 
 
 let id = 0
@@ -12,22 +13,13 @@ let list= [
     }
 ]
 
-class Name extends Component {
-    template = `<span>Rv</span>`
-    componentWillUnMount(){
-        console.log('Name组件将要被卸载')
-    }
-    componentDidUnMount(){
-        console.log('Name组件已经被卸载')
-    }
-}
 
 class H1 extends Component {
-    template = `<h1 onclick={click} class="center"><Name />{state} {props.width} <slot></slot></h1>`
+    template = `<h1 onclick={click} class="center">{state} {props.width} {props.name}<slot></slot></h1>`
     data = {
         state: ' Todo List'
     }
-    components = {Name}
+    components = {}
     method = {
         click(){
             this.state += ' +1s'
@@ -87,13 +79,13 @@ class Item extends Component {
     template = `
         <li style={styles} complete-style={complateStyle} >
             <div>
-                <h4>{props.i + 1} : {props.title}</h4>
+                <h4>{props.i + 1} : {props.title} : {props.i}</h4>
                 <p>
                     {props.content}
                 </p>
             </div>
-            <button onclick={props.del} data-index={props.id}>删除</button>
-            <button onclick={edit}>编辑</button>
+            <button {...onTap(props.del)} data-index={props.id}>删除</button>
+            <button {...onTap(edit)}>编辑</button>
         </li>
     `
     data = {
@@ -108,6 +100,7 @@ class Item extends Component {
         },
     }
     method = {
+        onTap,
         edit(){
             Modal.open('body', '', {
                 Body: Open,
@@ -122,41 +115,59 @@ class Home extends Component {
         <header>
             Rv
         </header>
-        <H1 width="100">
+        <H1 width={width} {...test}>
             <span onClick={slotClick}>我是标题</span>
         </H1>
-        <input type="text" placeholder={name} value={input} v-if={vIf} onKeyUp={keyup} ref="input" />
+        <input placeholder={name}  v-if={vIf} x-webkit-speech="true" onKeyUp={keyup} ref="input" />
         <input type="text" style="border: 20px solid red; " placeholder={name} value={input} v-if={!vIf} onKeyUp={keyup} ref="input" />
         <button onClick={add}>提交</button>
         <div style="line-height: 2;" v-click="11111" onclick={click} >{input}</div>
-        <ul v-for="(item i) in showList">
-            <Item i={i} {...item} del={del} />
+        <ul>
+            <div v-for="(item i) in showList">
+                {i + 1}
+                <div>
+                    <Item i={i} {...item} del={del}></Item>
+                </div>
+            </div>
         </ul>
         <div>
-            <button class={currentFilter == 'today' && 'current' } onClick={filter.bind(this, 'today')}>今天</button>
-            <button class={currentFilter == 'date' && 'current' } onClick={filter.bind(this, 'date')}>本周</button>
-            <button class={currentFilter == 'month' && 'current' } onClick={filter.bind(this, 'month')}>本月</button>
-            <button class={currentFilter == 'all' && 'current' } onClick={filter.bind(this, 'all')}>全部</button>
+            <button class={currentFilter == 'today' && 'current' } data-type="today" {...onTap(filter)}>今天</button>
+            <button class={currentFilter == 'date' && 'current' } data-type="date" {...onTap(filter)}>本周</button>
+            <button class={currentFilter == 'month' && 'current' } data-type="month" {...onTap(filter)}>本月</button>
+            <button class={currentFilter == 'all' && 'current' } data-type="all" {...onTap(filter)}>全部</button>
+            <button  {...onTap(reserve)}>反转</button>
         </div>
         <p>倒计时{time}秒 <button onClick={reset}>reset</button></p>
+        <button onClick={checkNetwork}>校验网络</button><span>{network}</span>
     </div>`
     data = {
         // name: '西方哪个国家',
         input: '',
         vIf: true,
-        ll: {
-            f: 1
+        test: {
+            name: '胡锦涛'
         },
         list,
+        width: 100,
         showList: list,
         currentFilter: 'all',
         time: 3,
-        left: 0
+        left: 0,
+        network: navigator.onLine ? '联网' : '断网'
     }
-    components = {H1, Name, Item}
+    components = {H1, Item}
     method = {
+        onTap,
+        checkNetwork(){
+            this.network = navigator.onLine ? '联网' : '断网'
+        },
         slotClick(){
-            alert('slotClick')
+            // alert('slotClick')
+            this.width++
+            this.test = {
+                name: '习近平'
+            }
+            console.log(this.width)
         },
         parentClick(){
             console.log('播放啦')
@@ -187,7 +198,11 @@ class Home extends Component {
 
             this.filter()
         },
-        filter(type){
+        reserve(){
+            this.showList.reverse()
+        },
+        filter(event){
+            let type = event ? event.target.dataset['type'] : ''
             type = type || this.currentFilter
 
             this.showList = this.list.filter(i => type != 'all' ? i.tag == type : 1)
@@ -238,17 +253,18 @@ class Home extends Component {
             })
 
             if (match) {
-                item = Object.assign(item, {
+                item = Object.assign({}, item, {
                     title,
                     content
                 })
+                console.log(this.list)
                 this.list.splice(index, 1 , item)
                 this.filter()
             }
 
         })
 
-        this.$set(this, 'name', 'fuck you bithc')
+        this.$set(this, 'name', 'write something')
 
         setTimeout(()=>{
             this.name = '哈哈哈'
@@ -258,6 +274,7 @@ class Home extends Component {
                 console.log('placeholder',this.refs.input.getAttribute('placeholder'))
             })
         }, 2000)
+
 
     }
 }

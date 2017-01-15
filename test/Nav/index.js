@@ -4,14 +4,19 @@ import './index.scss'
 
 export default class Nav extends Component {
     template = `
-        <div id="nav" v-for={item in items}>
-            <Link class="item" href={item.url} title={item.title} replace={false}>
+        <div id="nav" class={className}>
+            <Link v-for="item in items" class="item" href={item.url} title={item.title} replace={false}>
                 <div>{item.title}</div>
             </Link>
         </div>
     `
     components = {Link}
     data = {
+        className: {
+            fuck: true,
+            fuckYou: true,
+            hah: false
+        },
         items: [
             {title: '首页', url: '/'},
             {title: '影院', url: '/movies'},

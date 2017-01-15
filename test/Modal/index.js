@@ -1,19 +1,20 @@
-let {Component} = window.Rv
+let {Component, tick} = window.Rv
 
 import './index.scss'
+import onTap from './../Link/tap'
 
 // 如何使用命令式方式打开一个Modal组件呢？
 // 如何把子组件传递进来？
 export default class Modal extends Component {
     template =  `
         <div style={warpStyle} class="modal-warp">
-            <div v-if={type} class="cancel" style={modalStyle} complete-style={modalStyleComplete} onClick={layerClose && close}></div>
+            <div v-if={type} class="cancel" style={modalStyle} complete-style={modalStyleComplete} onClick={...onTap(close)}></div>
             <div v-if={type} style={contentStyle} complete-style={contentStyleComplete}>
                 <div v-if={type == "alert"}>
                     <p>{msg}</p>
                     <div class="bottom">
-                        <button onClick={close}>确认</button>
-                        <button onClick={close} class="cancel">取消</button>
+                        <button {...onTap(close)}>确认111</button>
+                        <button {...onTap(close)} class="cancel">取消</button>
                     </div>
                 </div>
                 <div v-if={type == "tips"}>
@@ -22,7 +23,7 @@ export default class Modal extends Component {
                 <div v-if={type == "confirm"}>
                     <p>{msg}</p>
                     <div class="bottom">
-                        <button onClick={close}>确认</button>
+                        <button {...onTap(close)}>确认</button>
                     </div>
                 </div>
                 <div v-if={type == "body"}>
@@ -60,11 +61,12 @@ export default class Modal extends Component {
     static open = (type, msg, options = {})=>{
         let self = Modal.self
         let {layerClose = true, submit, cancel, Body, props} = options
-        self.show()
 
         self.type = type
         self.options = options
         self.layerClose = layerClose
+
+        self.show()
 
         if (type == 'body') {
             self.components.Body = Body
@@ -78,16 +80,19 @@ export default class Modal extends Component {
                 }, 2000)
             }
         }
+
     }
     static close = ()=>{
         Modal.self.close()
     }
     method = {
+        onTap,
         show(){
-            this.warpStyle.display = 'block'
+            this.warpStyle.display = 'block' 
         },
         close(event){
             let yes = event ? !event.target.classList.contains('cancel') : false
+            this.type = ''
             this.warpStyle.display = 'none'
             if (this.options) {
                 let {submit, cancel} = this.options
