@@ -18,10 +18,11 @@ import {Observe, setDataProperty} from './observe'
 import Pubsub from './pubsub'
 import util from './util'
 
+let ps = new Pubsub()
 function DOMRender(Component, $parent, props = {}) {
 
     let fuck = new Component()
-    let {data = {}, method, template, components } = fuck
+    let {data = {}, method, template, components, event = {} } = fuck
     let that = Object.assign({}, {props}, method, {components})
 
 
@@ -47,15 +48,18 @@ function DOMRender(Component, $parent, props = {}) {
 
     that.__triggerCallback = triggerCallback
     that.$set = setDataProperty
+
     that.componentWillMount();
 
     let tokens = tokenizer(addQuote(template))
     let ast = parser(tokens)
+
+    handlePSEvents(that, event)
     let {refs, events, children, exprAtrributeQueue, $ele} = transform(ast, that, listeners, $parent, components, props)
 
     // 添加refs，组件不直接调用dom
     that.refs = refs
-
+    that.$ps = ps
     // ele.appendChild(node)
     that.componentDidMount();
 
@@ -68,6 +72,46 @@ function DOMRender(Component, $parent, props = {}) {
         $ele,
     }
 }
+
+function handlePSEvents(that, events){
+    let isOn = false
+    that.__events = {}
+    function onPS(){
+        if (isOn) return
+        isOn = true
+        // 监听
+        Object.keys(events).forEach(key => {
+            let fn = events[key].bind(that)
+            // 监听
+            ps.on(key, fn)
+            that.__events[key] = fn
+            return fn
+        })
+    }
+
+    function offPS(){
+        if (!isOn) return
+        isOn = false
+        // 卸载
+        Object.keys(that.__events).forEach(key => {
+            let fn = that.__events[key]
+            // 监听
+            ps.off(key, fn)
+        })
+    }
+
+    onPS()
+
+    that.onPS = onPS
+    that.offPS = offPS
+
+    return {
+        onPS,
+        offPS
+    }
+}
+
+
 
 // 给标签内的字符串添加双引号，方便token解析
 function addQuote(template) {
@@ -149,10 +193,6 @@ class Component {
     }
 }
 
-function unmount(ele) {
-    ele.__Rv
-}
-
 
 window.Rv = {
     Component,
@@ -165,6 +205,6 @@ window.Rv = {
     tick,
     unmount: unmountElement,
     set: setDataProperty,
-    ps: new Pubsub(),
+    ps,
     __id: 0
 }

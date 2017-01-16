@@ -31,6 +31,31 @@ function isGeneratorFunction(obj){
     return !!getType(obj).match('generatorfunction')
 }
 
+/**
+ * [uniqueArray 数组去重]
+ * @method uniqueArray
+ * @param  {Array}     [arr=[]] [description]
+ * @param  {String}    [key=''] [description]
+ * @return {Array}             [description]
+ */
+function uniqueArray(arr = [], key = ''){
+    let newArr = []
+    let keyArr = []
+    arr.forEach(item => {
+        if (key && keyArr.indexOf(item[key]) < 0) {
+            keyArr.push(item[key])
+            newArr.push(item)
+        }
+
+        if (!key && newArr.indexOf(item) < 0) {
+            newArr.push(item)
+        }
+    })
+
+    newArr.length != arr.length && console.error('the value of key should be unique')
+    return newArr
+}
+
 export default {
     getType,
     isFunction,
@@ -40,4 +65,5 @@ export default {
     isPromise,
     isAsyncFunction,
     isGeneratorFunction,
+    uniqueArray,
 }
