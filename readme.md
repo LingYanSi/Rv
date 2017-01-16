@@ -9,12 +9,14 @@
 - 事件委托
 - 数据监听
 - 字符串模板解析
+- For循环内index的更新
 - 模板内表达式的依赖追踪
 - Object spread
 - slots
 - complete-style
 - 组件传递
-- 事件广播
+- 事件广播 【event内方法，在componentDidMount前托管到PubSub,componentDidUnMount前off】
+- 数组 -> key
 - etc
 
 ## 待实现
@@ -73,6 +75,12 @@ class App extends Component{
             alert('slotClick')
         }
     }
+    event = {
+        // this.$ps.trigger('updateName', '哈哈哈')
+        updateName(name){
+            this.name = name
+        }
+    }
     // 生命周期
     componentDidMount(){
         this.startTime()
@@ -82,6 +90,14 @@ class App extends Component{
 DOMRender(App, document.querySelector('#app'))
 
 ```
+
+## 文档Doc
+### Rv做了什么事情？
+- Rv会把template字符串解析成DOM树
+- 在DOM树转真实DOM时候，注入一些逻辑
+- 对data做observe监控
+- 对属性进行依赖追踪，数据更新的时候就可以自动属性
+
 
 ## JSX与字符串模板比较
 

@@ -48,27 +48,27 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _ = __webpack_require__(17);
+	var _ = __webpack_require__(18);
 
 	var _2 = _interopRequireDefault(_);
 
-	var _Modal = __webpack_require__(20);
+	var _Modal = __webpack_require__(21);
 
 	var _Modal2 = _interopRequireDefault(_Modal);
 
-	var _Nav = __webpack_require__(22);
+	var _Nav = __webpack_require__(23);
 
 	var _Nav2 = _interopRequireDefault(_Nav);
 
-	var _Home = __webpack_require__(24);
+	var _Home = __webpack_require__(25);
 
 	var _Home2 = _interopRequireDefault(_Home);
 
-	var _Movies = __webpack_require__(27);
+	var _Movies = __webpack_require__(28);
 
 	var _Movies2 = _interopRequireDefault(_Movies);
 
-	var _Mine = __webpack_require__(25);
+	var _Mine = __webpack_require__(26);
 
 	var _Mine2 = _interopRequireDefault(_Mine);
 
@@ -303,8 +303,8 @@
 	router.replace('/', '首頁');
 
 	try {
-	    var utterThis = new window.SpeechSynthesisUtterance('宋小帆、李倩倩、陈莹');
-	    window.speechSynthesis.speak(utterThis);
+	    // var utterThis = new window.SpeechSynthesisUtterance('宋小帆、李倩倩、陈莹');
+	    // window.speechSynthesis.speak(utterThis);
 	} catch (err) {
 	    // alert(11)
 	}
@@ -683,7 +683,8 @@
 /* 14 */,
 /* 15 */,
 /* 16 */,
-/* 17 */
+/* 17 */,
+/* 18 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -725,7 +726,7 @@
 	exports.default = Nine;
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -736,7 +737,7 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _tap = __webpack_require__(19);
+	var _tap = __webpack_require__(20);
 
 	var _tap2 = _interopRequireDefault(_tap);
 
@@ -810,7 +811,7 @@
 	exports.default = Link;
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -866,7 +867,7 @@
 	exports.default = onTap;
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -878,9 +879,9 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	__webpack_require__(21);
+	__webpack_require__(22);
 
-	var _tap = __webpack_require__(19);
+	var _tap = __webpack_require__(20);
 
 	var _tap2 = _interopRequireDefault(_tap);
 
@@ -1005,7 +1006,7 @@
 	window.Modal = Modal;
 
 /***/ },
-/* 21 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
@@ -1031,7 +1032,7 @@
 	}
 
 /***/ },
-/* 22 */
+/* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -1041,11 +1042,11 @@
 	});
 	exports.default = undefined;
 
-	var _Link = __webpack_require__(18);
+	var _Link = __webpack_require__(19);
 
 	var _Link2 = _interopRequireDefault(_Link);
 
-	__webpack_require__(23);
+	__webpack_require__(24);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -1099,7 +1100,7 @@
 	exports.default = Nav;
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
@@ -1125,7 +1126,7 @@
 	}
 
 /***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -1136,11 +1137,11 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	var _Modal = __webpack_require__(20);
+	var _Modal = __webpack_require__(21);
 
 	var _Modal2 = _interopRequireDefault(_Modal);
 
-	var _tap = __webpack_require__(19);
+	var _tap = __webpack_require__(20);
 
 	var _tap2 = _interopRequireDefault(_tap);
 
@@ -1199,9 +1200,6 @@
 	    }, {
 	        key: 'componentDidMount',
 	        value: function componentDidMount() {
-	            ps.on('fuck', function (data) {
-	                alert(data);
-	            });
 	            console.log('组件加载成功');
 	        }
 	    }, {
@@ -1238,7 +1236,7 @@
 	            submit: function submit() {
 	                var title = this.refs.title.value;
 	                var content = this.refs.content.value;
-	                ps.trigger('list::change', {
+	                this.$ps.trigger('list::change', {
 	                    title: title,
 	                    content: content,
 	                    id: this.props.id
@@ -1295,6 +1293,10 @@
 	                    props: this.props
 	                });
 	            }
+	        }, _this3.event = {
+	            listItem: function listItem(data) {
+	                console.log('list列表', data);
+	            }
 	        }, _temp3), _possibleConstructorReturn(_this3, _ret3);
 	    }
 
@@ -1315,7 +1317,7 @@
 	            args[_key4] = arguments[_key4];
 	        }
 
-	        return _ret4 = (_temp4 = (_this4 = _possibleConstructorReturn(this, (_ref4 = Home.__proto__ || Object.getPrototypeOf(Home)).call.apply(_ref4, [this].concat(args))), _this4), _this4.template = '<div>\n        <header>\n            Rv\n        </header>\n        <H1 width={width} {...test}>\n            <span onClick={slotClick}>\u6211\u662F\u6807\u9898</span>\n        </H1>\n        <input placeholder={name}  v-if={vIf} x-webkit-speech="true" onKeyUp={keyup} ref="input" />\n        <input type="text" style="border: 20px solid red; " placeholder={name} value={input} v-if={!vIf} onKeyUp={keyup} ref="input" />\n        <button onClick={add}>\u63D0\u4EA4</button>\n        <div style="line-height: 2;" v-click="11111" onclick={click} >{input}</div>\n        <ul>\n            <div v-for="(item i) in showList">\n                {i + 1}\n                <div>\n                    <Item i={i} {...item} del={del}></Item>\n                </div>\n            </div>\n        </ul>\n        <div>\n            <button class={currentFilter == \'today\' && \'current\' } data-type="today" {...onTap(filter)}>\u4ECA\u5929</button>\n            <button class={currentFilter == \'date\' && \'current\' } data-type="date" {...onTap(filter)}>\u672C\u5468</button>\n            <button class={currentFilter == \'month\' && \'current\' } data-type="month" {...onTap(filter)}>\u672C\u6708</button>\n            <button class={currentFilter == \'all\' && \'current\' } data-type="all" {...onTap(filter)}>\u5168\u90E8</button>\n            <button  {...onTap(reserve)}>\u53CD\u8F6C</button>\n        </div>\n        <p>\u5012\u8BA1\u65F6{time}\u79D2 <button onClick={reset}>reset</button></p>\n        <button onClick={checkNetwork}>\u6821\u9A8C\u7F51\u7EDC</button><span>{network}</span>\n    </div>', _this4.data = {
+	        return _ret4 = (_temp4 = (_this4 = _possibleConstructorReturn(this, (_ref4 = Home.__proto__ || Object.getPrototypeOf(Home)).call.apply(_ref4, [this].concat(args))), _this4), _this4.template = '<div>\n        <header>\n            Rv\n        </header>\n        <H1 width={width} {...test}>\n            <span onClick={slotClick}>\u6211\u662F\u6807\u9898</span>\n        </H1>\n        <input placeholder={name}  v-if={vIf} x-webkit-speech="true" onKeyUp={keyup} ref="input" />\n        <input type="text" style="border: 20px solid red; " placeholder={name} value={input} v-if={!vIf} onKeyUp={keyup} ref="input" />\n        <button onClick={add}>\u63D0\u4EA4</button>\n        <div style="line-height: 2;" v-click="11111" onclick={click} >{input}</div>\n        <ul>\n            <div v-for="(item i) in showList" key={item.id}>\n                {i + 1}\n                <div>\n                    <Item i={i} {...item} del={del}></Item>\n                </div>\n            </div>\n        </ul>\n        <div>\n            <button class={currentFilter == \'today\' && \'current\' } data-type="today" {...onTap(filter)}>\u4ECA\u5929</button>\n            <button class={currentFilter == \'date\' && \'current\' } data-type="date" {...onTap(filter)}>\u672C\u5468</button>\n            <button class={currentFilter == \'month\' && \'current\' } data-type="month" {...onTap(filter)}>\u672C\u6708</button>\n            <button class={currentFilter == \'all\' && \'current\' } data-type="all" {...onTap(filter)}>\u5168\u90E8</button>\n            <button  {...onTap(reserve)}>\u53CD\u8F6C</button>\n        </div>\n        <p>\u5012\u8BA1\u65F6{time}\u79D2 <button onClick={reset}>reset</button></p>\n        <button onClick={checkNetwork}>\u6821\u9A8C\u7F51\u7EDC</button><span>{network}</span>\n    </div>', _this4.data = {
 	            // name: '西方哪个国家',
 	            input: '',
 	            vIf: true,
@@ -1412,27 +1414,18 @@
 	            onShow: function onShow() {
 	                console.log('页面onshoe了');
 	            }
-	        }, _this4.events = {}, _temp4), _possibleConstructorReturn(_this4, _ret4);
-	    }
-	    // 事件监听
-
-
-	    _createClass(Home, [{
-	        key: 'componentDidMount',
-
-	        // 生命周期
-	        value: function componentDidMount() {
-	            var _this7 = this;
-
-	            this.startTime();
-	            ps.on('list::change', function (data) {
+	        }, _this4.event = {
+	            'fuck': function fuck(data) {
+	                console.log(data);
+	            },
+	            'list::change': function listChange(data) {
 	                var id = data.id,
 	                    title = data.title,
 	                    content = data.content;
 
 	                var index = void 0;
 	                var item = void 0;
-	                var match = _this7.list.some(function (_item, _index) {
+	                var match = this.list.some(function (_item, _index) {
 	                    if (_item.id === id) {
 	                        index = _index;
 	                        item = _item;
@@ -1445,11 +1438,24 @@
 	                        title: title,
 	                        content: content
 	                    });
-	                    console.log(_this7.list);
-	                    _this7.list.splice(index, 1, item);
-	                    _this7.filter();
+	                    console.log(this.list);
+	                    this.list.splice(index, 1, item);
+	                    this.filter();
 	                }
-	            });
+	            }
+	        }, _temp4), _possibleConstructorReturn(_this4, _ret4);
+	    }
+	    // 事件监听
+
+
+	    _createClass(Home, [{
+	        key: 'componentDidMount',
+
+	        // 生命周期
+	        value: function componentDidMount() {
+	            var _this7 = this;
+
+	            this.startTime();
 
 	            this.$set(this, 'name', 'write something');
 
@@ -1471,14 +1477,14 @@
 	exports.default = Home;
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	__webpack_require__(26);
+	__webpack_require__(27);
 
-	var _Link = __webpack_require__(18);
+	var _Link = __webpack_require__(19);
 
 	var _Link2 = _interopRequireDefault(_Link);
 
@@ -1515,7 +1521,7 @@
 	routers['/mine'] = Mine;
 
 /***/ },
-/* 26 */
+/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
@@ -1541,14 +1547,14 @@
 	}
 
 /***/ },
-/* 27 */
+/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	__webpack_require__(28);
+	__webpack_require__(29);
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -1636,7 +1642,7 @@
 	routers['/movies'] = Movies;
 
 /***/ },
-/* 28 */
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag

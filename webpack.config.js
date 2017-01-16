@@ -74,8 +74,8 @@ module.exports = {
     plugins: [
         new WebpackPathOrderPlugin(),
         // new ExtractTextPlugin("./../css/app.css"),
-        // 压缩js文本
-        // 0 && new webpack.optimize.UglifyJsPlugin({
+        // 压缩js文本8
+        // new webpack.optimize.UglifyJsPlugin({
         //     compress: {
         //         warnings: false
         //     }

@@ -187,8 +187,8 @@ DOMRender(App, document.querySelector('#app'))
 router.replace('/', '首頁')
 
 try{
-    var utterThis = new window.SpeechSynthesisUtterance('宋小帆、李倩倩、陈莹');
-    window.speechSynthesis.speak(utterThis);
+    // var utterThis = new window.SpeechSynthesisUtterance('宋小帆、李倩倩、陈莹');
+    // window.speechSynthesis.speak(utterThis);
 }catch(err){
     // alert(11)
 }

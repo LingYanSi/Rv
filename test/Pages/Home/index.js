@@ -10,7 +10,7 @@ let list= [
         content: "☺☺☺☺☺",
         tag: 'today',
         id: id++
-    }
+    } 
 ]
 
 
@@ -29,9 +29,6 @@ class H1 extends Component {
         console.log('组件将要加载')
     }
     componentDidMount(){
-        ps.on('fuck', function(data){
-            alert(data)
-        })
         console.log('组件加载成功')
     }
     componentWillUnMount(){
@@ -62,7 +59,7 @@ class Open extends Component {
         submit(){
             let title = this.refs.title.value
             let content = this.refs.content.value
-            ps.trigger('list::change', {
+            this.$ps.trigger('list::change', {
                 title,
                 content,
                 id: this.props.id
@@ -108,6 +105,11 @@ class Item extends Component {
             })
         }
     }
+    event = {
+        listItem(data){
+            console.log('list列表', data)
+        }
+    }
 }
 
 class Home extends Component {
@@ -123,7 +125,7 @@ class Home extends Component {
         <button onClick={add}>提交</button>
         <div style="line-height: 2;" v-click="11111" onclick={click} >{input}</div>
         <ul>
-            <div v-for="(item i) in showList">
+            <div v-for="(item i) in showList" key={item.id}>
                 {i + 1}
                 <div>
                     <Item i={i} {...item} del={del}></Item>
@@ -153,7 +155,7 @@ class Home extends Component {
         currentFilter: 'all',
         time: 3,
         left: 0,
-        network: navigator.onLine ? '联网' : '断网'
+        network: navigator.onLine ? '联网' : '断网',
     }
     components = {H1, Item}
     method = {
@@ -234,13 +236,11 @@ class Home extends Component {
         }
     }
     // 事件监听
-    events = {
-
-    }
-    // 生命周期
-    componentDidMount(){
-        this.startTime()
-        ps.on('list::change', (data)=>{
+    event = {
+        'fuck':function(data){
+            console.log(data)
+        },
+        'list::change': function(data){
             let {id, title, content} = data
             let index
             let item
@@ -261,8 +261,11 @@ class Home extends Component {
                 this.list.splice(index, 1 , item)
                 this.filter()
             }
-
-        })
+        }
+    }
+    // 生命周期
+    componentDidMount(){
+        this.startTime()
 
         this.$set(this, 'name', 'write something')
 
