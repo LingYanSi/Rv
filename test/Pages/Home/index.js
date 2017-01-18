@@ -10,7 +10,7 @@ let list= [
         content: "☺☺☺☺☺",
         tag: 'today',
         id: id++
-    } 
+    }
 ]
 
 
@@ -85,6 +85,9 @@ class Item extends Component {
             <button {...onTap(edit)}>编辑</button>
         </li>
     `
+    componentDidMount(){
+        // console.log('Item加载完成')
+    }
     data = {
         styles: {
             background: '',
@@ -126,7 +129,7 @@ class Home extends Component {
         <div style="line-height: 2;" v-click="11111" onclick={click} >{input}</div>
         <ul>
             <div v-for="(item i) in showList" key={item.id}>
-                {i + 1}
+                {i+1}
                 <div>
                     <Item i={i} {...item} del={del}></Item>
                 </div>
@@ -176,7 +179,8 @@ class Home extends Component {
         },
         keyup(event) {
             if(event.keyCode == 13) {
-                this.add(event)
+                console.log(this.showList)
+                // this.add(event)
             }
             this.input = event.target.value
         },

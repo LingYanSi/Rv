@@ -21,12 +21,15 @@ class Tick {
     }
     exec(){
         // 先缓存，后执行，方便后续添加
+
         let cacheQueue = this.queue
         let cacheNextTickQueue = this.nextTickQueue
 
         this.queue = []
         this.nextTickQueue = []
 
+        clearTimeout(this.setTimeout)
+        
         cacheQueue.forEach(item => {
             item.fn()
         })

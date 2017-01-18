@@ -1483,11 +1483,14 @@
 	            var _this2 = this;
 
 	            // 先缓存，后执行，方便后续添加
+
 	            var cacheQueue = this.queue;
 	            var cacheNextTickQueue = this.nextTickQueue;
 
 	            this.queue = [];
 	            this.nextTickQueue = [];
+
+	            clearTimeout(this.setTimeout);
 
 	            cacheQueue.forEach(function (item) {
 	                item.fn();
@@ -2030,11 +2033,12 @@
 
 	    // 处理if指令，不管元素是否渲染，都会留下两个占位的注释节点
 	    function handleVIf(VIF, $parent, node, ctx) {
-	        // let
 	        var commentStart = document.createComment('if-placeholder-start');
+	        // let commentStart = document.createTextNode(' ')
 	        $parent.appendChild(commentStart);
 
 	        var commentEnd = document.createComment('if-placeholder-end');
+	        // let commentEnd = document.createTextNode(' ')
 	        $parent.appendChild(commentEnd);
 
 	        function render() {
@@ -2045,7 +2049,7 @@
 	        var result = handleExpr(VIF.value, {
 	            attributeName: IF,
 	            $ele: $parent
-	        }, ctx, function (matched, newValue, oldValue) {
+	        }, ctx, function (key, newValue, oldValue) {
 	            // 监听数据变化
 	            deleteNextElement(commentStart, CTXX);
 	            newValue && render();
@@ -2110,6 +2114,11 @@
 
 	// 更新for循环内的元素
 	function triggerCallback($ele, indexName, index, CTXX) {
+	    // 只触发文本节点与元素的更新
+	    if ($ele.__RVID === undefined) {
+	        return;
+	    }
+
 	    var state = CTXX.state;
 
 	    var newCtx = {};
@@ -2151,7 +2160,9 @@
 	            return i;
 	        }).join('.');
 	        var matched = exprKeys.some(function (i) {
-	            return keys.startsWith(i);
+	            // 是级联的，就给i添加一个. 否则直接比对
+	            // 因为可能会出现 inx.name input i 这种情况
+	            return keys.includes('.') ? keys.startsWith(i + '.') : keys === i;
 	        });
 
 	        // 数据来了
@@ -2490,7 +2501,8 @@
 	                var _$parent$__Rv$compone = $parent.__Rv.component,
 	                    componentWillUnMount = _$parent$__Rv$compone.componentWillUnMount,
 	                    componentDidUnMount = _$parent$__Rv$compone.componentDidUnMount,
-	                    offPS = _$parent$__Rv$compone.offPS;
+	                    offPS = _$parent$__Rv$compone.offPS,
+	                    onHide = _$parent$__Rv$compone.onHide;
 	                // 组件将要卸载
 
 	                componentWillUnMount();
@@ -2504,6 +2516,7 @@
 	                $parent.__Rv.children.forEach(function (component) {
 	                    component.$ele.__Rv.unmount();
 	                });
+	                // 卸载前，移除PubSub中的事件监听
 	                offPS();
 	                // 组件已卸载
 	                componentDidUnMount();

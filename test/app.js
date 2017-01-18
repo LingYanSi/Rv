@@ -6,6 +6,12 @@ import Movies from './Pages/Movies'
 import Mine from './Pages/Mine'
 let {Component, DOMRender, ps, set, nextTick, tick} = window.Rv
 
+class NotFound extends Component {
+    template = `<div>
+        404 你来到了Rv的荒原
+    </div>`
+}
+
 class Page extends Component {
     template = `<div style="padding-bottom: 50px;">
         <div v-if={pageShow1}>
@@ -33,17 +39,19 @@ class Page extends Component {
         Page.self = this
         this.cache = []
     }
-    static update = (Component, url = '/', replace = false)=>{
+    static update = (Component = NotFound, url = '/', replace = false)=>{
         let that = Page.self
 
         let {cache} = that
         let pageIndex = 1
         let cacheScrollTop = 0
+
+        console.log(...cache)
         let match = cache.some((item , index)=> {
-            console.log(url, item.url)
             if(url == item.url){
                 pageIndex = item.pageIndex
                 cacheScrollTop = item.scrollTop
+                console.log(cacheScrollTop, url, item)
                 cache.splice(index, 1)
                 return true
             }
@@ -80,20 +88,20 @@ class Page extends Component {
                 prev.onHide && prev.onHide()
             }
 
-            console.log('哈哈哈哈哈', current, pageIndex);
-
             current.onShow && current.onShow()
             current.$ele.style.cssText += 'display: block;'
             that.prev = current
 
-            console.log(url)
             that.cache.push({
                 url,
                 pageIndex,
             })
 
             if (match) {
-                document.body.scrollTop = cacheScrollTop
+                // 同步执行在页面回退的时候，可能不会滚动到指定位置
+                setTimeout(()=>{
+                    document.body.scrollTop = cacheScrollTop
+                })
             }
         })
 
@@ -115,11 +123,14 @@ class App extends Component{
 }
 
 window.router = (function(){
+    let USE_HASH = true
     let listenCaches = []
-    let currentRouter = ''
+    let currentRouter = USE_HASH ? location.hash.slice(1) : location.pathname
 
     window.addEventListener('popstate', ()=>{
-        render(location.pathname)
+        console.log('非礼勿视')
+        let url = USE_HASH ? location.hash.slice(1) : location.pathname
+        render(url)
     })
 
     // 渲染页面
@@ -129,6 +140,7 @@ window.router = (function(){
         let Component = routers[url]
         Page.update(Component, url, replace)
 
+        console.log('去触发Link', url)
         listenCaches.forEach(fn => fn(url))
     }
 
@@ -153,16 +165,27 @@ window.router = (function(){
         }
     }
 
+    function changeUrl(url = '/', replace = false){
+        currentRouter = url
+        if (USE_HASH) {
+            // location.hash = url
+            url = location.pathname + '#' + url
+            history.pushState('', null, url)
+        } else {
+            replace ? history.replaceState('', null, url) : history.pushState('', null, url)
+        }
+    }
+
     let router = {
         push(url = '/', title = ''){
             render(url)
-            history.pushState(title, null, url)
+            changeUrl(url)
             changeDocumentTitle(title)
             return this
         },
         replace(url = '/', title = ''){
             render(url, true)
-            history.replaceState(title, null, url)
+            changeUrl(url)
             changeDocumentTitle(title)
             return this
         },
@@ -176,6 +199,10 @@ window.router = (function(){
         remove(fn){
             listenCaches = listenCaches.filter(i => i!==fn)
             return this
+        },
+        init(){
+            console.log({currentRouter})
+            render(currentRouter)
         }
     }
 
@@ -184,7 +211,7 @@ window.router = (function(){
 
 DOMRender(App, document.querySelector('#app'))
 
-router.replace('/', '首頁')
+router.init()
 
 try{
     // var utterThis = new window.SpeechSynthesisUtterance('宋小帆、李倩倩、陈莹');

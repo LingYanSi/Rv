@@ -17,4 +17,18 @@
             color: #fff;
         }
     }
+
+    .mask {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background: url(http://wx4.sinaimg.cn/mw690/a20a9b80ly1fbtlmoq5dng208c08cx6x.gif) ;
+        background-size: cover;
+        mask: url(/test.png) ;
+        mask-size: 100% 100%;
+        // mask-position: center;
+        mask-repeat: no-repeat;
+    }
 }

@@ -285,11 +285,12 @@ function transform(ast, state, listeners, $parent, components, props) {
 
     // 处理if指令，不管元素是否渲染，都会留下两个占位的注释节点
     function handleVIf(VIF, $parent, node, ctx) {
-        // let
         let commentStart = document.createComment('if-placeholder-start')
+        // let commentStart = document.createTextNode(' ')
         $parent.appendChild(commentStart)
 
         let commentEnd = document.createComment('if-placeholder-end')
+        // let commentEnd = document.createTextNode(' ')
         $parent.appendChild(commentEnd)
 
         function render() {
@@ -300,7 +301,7 @@ function transform(ast, state, listeners, $parent, components, props) {
         let result = handleExpr(VIF.value, {
             attributeName: IF,
             $ele: $parent
-        }, ctx, function(matched, newValue, oldValue) {
+        }, ctx, function(key, newValue, oldValue) {
             // 监听数据变化
             deleteNextElement(commentStart, CTXX)
             newValue && render()
@@ -365,6 +366,11 @@ function deleteNextElement(NODE, CTXX) {
 
 // 更新for循环内的元素
 function triggerCallback($ele, indexName, index, CTXX) {
+    // 只触发文本节点与元素的更新
+    if ($ele.__RVID === undefined) {
+        return
+    }
+
     let {state} = CTXX
     let newCtx = {}
     newCtx[indexName] = index
@@ -397,7 +403,11 @@ function handleExpr(expr, watchParams, ctx, callback, IS_LISTEN = true, CTXX = {
         // newCtx 用来更新上下文
         // RVID 用来更新指定节点
         let keys = key.split(',').filter(i => i).join('.')
-        let matched = exprKeys.some(i => keys.startsWith(i))
+        let matched = exprKeys.some(i => {
+            // 是级联的，就给i添加一个. 否则直接比对
+            // 因为可能会出现 inx.name input i 这种情况
+            return keys.includes('.') ? keys.startsWith(`${i}.`) : keys === i
+        })
 
         // 数据来了
         if (!matched)
@@ -695,7 +705,7 @@ class Unmount {
     // 卸载元素
     element($parent) {
         if ($parent.__Rv instanceof RvElementHook && $parent.__Rv.isComponentRoot) {
-            let {componentWillUnMount, componentDidUnMount, offPS} = $parent.__Rv.component
+            let {componentWillUnMount, componentDidUnMount, offPS, onHide} = $parent.__Rv.component
             // 组件将要卸载
             componentWillUnMount()
 
@@ -707,7 +717,8 @@ class Unmount {
             // throw new Error()
             $parent.__Rv.children.forEach(component => {
                 component.$ele.__Rv.unmount()
-            })
+            }) 
+            // 卸载前，移除PubSub中的事件监听
             offPS()
             // 组件已卸载
             componentDidUnMount()

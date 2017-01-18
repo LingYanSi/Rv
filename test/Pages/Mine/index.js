@@ -7,6 +7,7 @@ class Mine extends Component {
         <div class="avatar"></div>
         <p>千年尸王毛润之</p>
         <p>这是一个简单的App</p>
+        <Link href="/fuck" class="">404页面</Link>
         <Link href="/" class="">去首页</Link>
         <Link href="/mine" class="">我的</Link>
     </div>`

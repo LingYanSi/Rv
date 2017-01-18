@@ -74,6 +74,8 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
@@ -88,27 +90,47 @@
 	    nextTick = _window$Rv.nextTick,
 	    tick = _window$Rv.tick;
 
-	var Page = function (_Component) {
-	    _inherits(Page, _Component);
+	var NotFound = function (_Component) {
+	    _inherits(NotFound, _Component);
 
-	    function Page() {
+	    function NotFound() {
 	        var _ref;
 
 	        var _temp, _this, _ret;
 
-	        _classCallCheck(this, Page);
+	        _classCallCheck(this, NotFound);
 
 	        for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
 	            args[_key] = arguments[_key];
 	        }
 
-	        return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = Page.__proto__ || Object.getPrototypeOf(Page)).call.apply(_ref, [this].concat(args))), _this), _this.template = '<div style="padding-bottom: 50px;">\n        <div v-if={pageShow1}>\n            <Page1 ref="Page1"/>\n        </div>\n        <div v-if={pageShow2}>\n            <Page2 ref="Page2" />\n        </div>\n        <div v-if={pageShow3}>\n            <Page3 ref="Page3" />\n        </div>\n    </div>', _this.components = {
+	        return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = NotFound.__proto__ || Object.getPrototypeOf(NotFound)).call.apply(_ref, [this].concat(args))), _this), _this.template = '<div>\n        404 \u4F60\u6765\u5230\u4E86Rv\u7684\u8352\u539F\n    </div>', _temp), _possibleConstructorReturn(_this, _ret);
+	    }
+
+	    return NotFound;
+	}(Component);
+
+	var Page = function (_Component2) {
+	    _inherits(Page, _Component2);
+
+	    function Page() {
+	        var _ref2;
+
+	        var _temp2, _this2, _ret2;
+
+	        _classCallCheck(this, Page);
+
+	        for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+	            args[_key2] = arguments[_key2];
+	        }
+
+	        return _ret2 = (_temp2 = (_this2 = _possibleConstructorReturn(this, (_ref2 = Page.__proto__ || Object.getPrototypeOf(Page)).call.apply(_ref2, [this].concat(args))), _this2), _this2.template = '<div style="padding-bottom: 50px;">\n        <div v-if={pageShow1}>\n            <Page1 ref="Page1"/>\n        </div>\n        <div v-if={pageShow2}>\n            <Page2 ref="Page2" />\n        </div>\n        <div v-if={pageShow3}>\n            <Page3 ref="Page3" />\n        </div>\n    </div>', _this2.components = {
 	            Page1: null
-	        }, _this.data = {
+	        }, _this2.data = {
 	            pageShow1: false,
 	            pageShow2: false,
 	            pageShow3: false
-	        }, _this.method = {}, _temp), _possibleConstructorReturn(_this, _ret);
+	        }, _this2.method = {}, _temp2), _possibleConstructorReturn(_this2, _ret2);
 	    }
 
 	    _createClass(Page, [{
@@ -122,7 +144,11 @@
 	    return Page;
 	}(Component);
 
-	Page.update = function (Component) {
+	Page.update = function () {
+	    var Component = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : NotFound;
+
+	    var _console;
+
 	    var url = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '/';
 	    var replace = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
 
@@ -132,11 +158,13 @@
 
 	    var pageIndex = 1;
 	    var cacheScrollTop = 0;
+
+	    (_console = console).log.apply(_console, _toConsumableArray(cache));
 	    var match = cache.some(function (item, index) {
-	        console.log(url, item.url);
 	        if (url == item.url) {
 	            pageIndex = item.pageIndex;
 	            cacheScrollTop = item.scrollTop;
+	            console.log(cacheScrollTop, url, item);
 	            cache.splice(index, 1);
 	            return true;
 	        }
@@ -173,20 +201,20 @@
 	            prev.onHide && prev.onHide();
 	        }
 
-	        console.log('哈哈哈哈哈', current, pageIndex);
-
 	        current.onShow && current.onShow();
 	        current.$ele.style.cssText += 'display: block;';
 	        that.prev = current;
 
-	        console.log(url);
 	        that.cache.push({
 	            url: url,
 	            pageIndex: pageIndex
 	        });
 
 	        if (match) {
-	            document.body.scrollTop = cacheScrollTop;
+	            // 同步执行在页面回退的时候，可能不会滚动到指定位置
+	            setTimeout(function () {
+	                document.body.scrollTop = cacheScrollTop;
+	            });
 	        }
 	    });
 
@@ -195,32 +223,35 @@
 	    return that;
 	};
 
-	var App = function (_Component2) {
-	    _inherits(App, _Component2);
+	var App = function (_Component3) {
+	    _inherits(App, _Component3);
 
 	    function App() {
-	        var _ref2;
+	        var _ref3;
 
-	        var _temp2, _this2, _ret2;
+	        var _temp3, _this3, _ret3;
 
 	        _classCallCheck(this, App);
 
-	        for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-	            args[_key2] = arguments[_key2];
+	        for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+	            args[_key3] = arguments[_key3];
 	        }
 
-	        return _ret2 = (_temp2 = (_this2 = _possibleConstructorReturn(this, (_ref2 = App.__proto__ || Object.getPrototypeOf(App)).call.apply(_ref2, [this].concat(args))), _this2), _this2.template = '\n        <div>\n            <Page></Page>\n            <Nav />\n            <Modal />\n        </div>\n    ', _this2.components = { Modal: _Modal2.default, Nav: _Nav2.default, Page: Page }, _temp2), _possibleConstructorReturn(_this2, _ret2);
+	        return _ret3 = (_temp3 = (_this3 = _possibleConstructorReturn(this, (_ref3 = App.__proto__ || Object.getPrototypeOf(App)).call.apply(_ref3, [this].concat(args))), _this3), _this3.template = '\n        <div>\n            <Page></Page>\n            <Nav />\n            <Modal />\n        </div>\n    ', _this3.components = { Modal: _Modal2.default, Nav: _Nav2.default, Page: Page }, _temp3), _possibleConstructorReturn(_this3, _ret3);
 	    }
 
 	    return App;
 	}(Component);
 
 	window.router = function () {
+	    var USE_HASH = true;
 	    var listenCaches = [];
-	    var currentRouter = '';
+	    var currentRouter = USE_HASH ? location.hash.slice(1) : location.pathname;
 
 	    window.addEventListener('popstate', function () {
-	        render(location.pathname);
+	        console.log('非礼勿视');
+	        var url = USE_HASH ? location.hash.slice(1) : location.pathname;
+	        render(url);
 	    });
 
 	    // 渲染页面
@@ -232,6 +263,7 @@
 	        var Component = routers[url];
 	        Page.update(Component, url, replace);
 
+	        console.log('去触发Link', url);
 	        listenCaches.forEach(function (fn) {
 	            return fn(url);
 	        });
@@ -261,13 +293,27 @@
 	        }
 	    }
 
+	    function changeUrl() {
+	        var url = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '/';
+	        var replace = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+
+	        currentRouter = url;
+	        if (USE_HASH) {
+	            // location.hash = url
+	            url = location.pathname + '#' + url;
+	            history.pushState('', null, url);
+	        } else {
+	            replace ? history.replaceState('', null, url) : history.pushState('', null, url);
+	        }
+	    }
+
 	    var router = {
 	        push: function push() {
 	            var url = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '/';
 	            var title = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
 
 	            render(url);
-	            history.pushState(title, null, url);
+	            changeUrl(url);
 	            changeDocumentTitle(title);
 	            return this;
 	        },
@@ -276,7 +322,7 @@
 	            var title = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
 
 	            render(url, true);
-	            history.replaceState(title, null, url);
+	            changeUrl(url);
 	            changeDocumentTitle(title);
 	            return this;
 	        },
@@ -292,6 +338,10 @@
 	                return i !== fn;
 	            });
 	            return this;
+	        },
+	        init: function init() {
+	            console.log({ currentRouter: currentRouter });
+	            render(currentRouter);
 	        }
 	    };
 
@@ -300,7 +350,7 @@
 
 	DOMRender(App, document.querySelector('#app'));
 
-	router.replace('/', '首頁');
+	router.init();
 
 	try {
 	    // var utterThis = new window.SpeechSynthesisUtterance('宋小帆、李倩倩、陈莹');
@@ -612,7 +662,7 @@
 
 
 	// module
-	exports.push([module.id, "#movies .item {\n  padding-top: 60%;\n  background-color: #048488;\n  background-size: cover;\n  background-repeat: no-repeat;\n  background-position: center;\n  position: relative; }\n  #movies .item p {\n    position: absolute;\n    bottom: 0;\n    left: 0;\n    height: 50px;\n    width: 100%;\n    background-color: rgba(0, 0, 0, 0.6);\n    color: #fff; }\n", ""]);
+	exports.push([module.id, "#movies .item {\n  padding-top: 60%;\n  background-color: #048488;\n  background-size: cover;\n  background-repeat: no-repeat;\n  background-position: center;\n  position: relative; }\n  #movies .item p {\n    position: absolute;\n    bottom: 0;\n    left: 0;\n    height: 50px;\n    width: 100%;\n    background-color: rgba(0, 0, 0, 0.6);\n    color: #fff; }\n\n#movies .mask {\n  position: fixed;\n  top: 0;\n  left: 0;\n  height: 100%;\n  width: 100%;\n  background: url(http://wx4.sinaimg.cn/mw690/a20a9b80ly1fbtlmoq5dng208c08cx6x.gif);\n  background-size: cover;\n  -webkit-mask: url(/test.png);\n          mask: url(/test.png);\n  -webkit-mask-size: 100% 100%;\n          mask-size: 100% 100%;\n  -webkit-mask-repeat: no-repeat;\n          mask-repeat: no-repeat; }\n", ""]);
 
 	// exports
 
@@ -1300,6 +1350,13 @@
 	        }, _temp3), _possibleConstructorReturn(_this3, _ret3);
 	    }
 
+	    _createClass(Item, [{
+	        key: 'componentDidMount',
+	        value: function componentDidMount() {
+	            // console.log('Item加载完成')
+	        }
+	    }]);
+
 	    return Item;
 	}(Component);
 
@@ -1317,7 +1374,7 @@
 	            args[_key4] = arguments[_key4];
 	        }
 
-	        return _ret4 = (_temp4 = (_this4 = _possibleConstructorReturn(this, (_ref4 = Home.__proto__ || Object.getPrototypeOf(Home)).call.apply(_ref4, [this].concat(args))), _this4), _this4.template = '<div>\n        <header>\n            Rv\n        </header>\n        <H1 width={width} {...test}>\n            <span onClick={slotClick}>\u6211\u662F\u6807\u9898</span>\n        </H1>\n        <input placeholder={name}  v-if={vIf} x-webkit-speech="true" onKeyUp={keyup} ref="input" />\n        <input type="text" style="border: 20px solid red; " placeholder={name} value={input} v-if={!vIf} onKeyUp={keyup} ref="input" />\n        <button onClick={add}>\u63D0\u4EA4</button>\n        <div style="line-height: 2;" v-click="11111" onclick={click} >{input}</div>\n        <ul>\n            <div v-for="(item i) in showList" key={item.id}>\n                {i + 1}\n                <div>\n                    <Item i={i} {...item} del={del}></Item>\n                </div>\n            </div>\n        </ul>\n        <div>\n            <button class={currentFilter == \'today\' && \'current\' } data-type="today" {...onTap(filter)}>\u4ECA\u5929</button>\n            <button class={currentFilter == \'date\' && \'current\' } data-type="date" {...onTap(filter)}>\u672C\u5468</button>\n            <button class={currentFilter == \'month\' && \'current\' } data-type="month" {...onTap(filter)}>\u672C\u6708</button>\n            <button class={currentFilter == \'all\' && \'current\' } data-type="all" {...onTap(filter)}>\u5168\u90E8</button>\n            <button  {...onTap(reserve)}>\u53CD\u8F6C</button>\n        </div>\n        <p>\u5012\u8BA1\u65F6{time}\u79D2 <button onClick={reset}>reset</button></p>\n        <button onClick={checkNetwork}>\u6821\u9A8C\u7F51\u7EDC</button><span>{network}</span>\n    </div>', _this4.data = {
+	        return _ret4 = (_temp4 = (_this4 = _possibleConstructorReturn(this, (_ref4 = Home.__proto__ || Object.getPrototypeOf(Home)).call.apply(_ref4, [this].concat(args))), _this4), _this4.template = '<div>\n        <header>\n            Rv\n        </header>\n        <H1 width={width} {...test}>\n            <span onClick={slotClick}>\u6211\u662F\u6807\u9898</span>\n        </H1>\n        <input placeholder={name}  v-if={vIf} x-webkit-speech="true" onKeyUp={keyup} ref="input" />\n        <input type="text" style="border: 20px solid red; " placeholder={name} value={input} v-if={!vIf} onKeyUp={keyup} ref="input" />\n        <button onClick={add}>\u63D0\u4EA4</button>\n        <div style="line-height: 2;" v-click="11111" onclick={click} >{input}</div>\n        <ul>\n            <div v-for="(item i) in showList" key={item.id}>\n                {i+1}\n                <div>\n                    <Item i={i} {...item} del={del}></Item>\n                </div>\n            </div>\n        </ul>\n        <div>\n            <button class={currentFilter == \'today\' && \'current\' } data-type="today" {...onTap(filter)}>\u4ECA\u5929</button>\n            <button class={currentFilter == \'date\' && \'current\' } data-type="date" {...onTap(filter)}>\u672C\u5468</button>\n            <button class={currentFilter == \'month\' && \'current\' } data-type="month" {...onTap(filter)}>\u672C\u6708</button>\n            <button class={currentFilter == \'all\' && \'current\' } data-type="all" {...onTap(filter)}>\u5168\u90E8</button>\n            <button  {...onTap(reserve)}>\u53CD\u8F6C</button>\n        </div>\n        <p>\u5012\u8BA1\u65F6{time}\u79D2 <button onClick={reset}>reset</button></p>\n        <button onClick={checkNetwork}>\u6821\u9A8C\u7F51\u7EDC</button><span>{network}</span>\n    </div>', _this4.data = {
 	            // name: '西方哪个国家',
 	            input: '',
 	            vIf: true,
@@ -1349,7 +1406,8 @@
 	            },
 	            keyup: function keyup(event) {
 	                if (event.keyCode == 13) {
-	                    this.add(event);
+	                    console.log(this.showList);
+	                    // this.add(event)
 	                }
 	                this.input = event.target.value;
 	            },
@@ -1512,7 +1570,7 @@
 	            args[_key] = arguments[_key];
 	        }
 
-	        return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = Mine.__proto__ || Object.getPrototypeOf(Mine)).call.apply(_ref, [this].concat(args))), _this), _this.template = '<div id="page-mine">\n        <div class="avatar"></div>\n        <p>\u5343\u5E74\u5C38\u738B\u6BDB\u6DA6\u4E4B</p>\n        <p>\u8FD9\u662F\u4E00\u4E2A\u7B80\u5355\u7684App</p>\n        <Link href="/" class="">\u53BB\u9996\u9875</Link>\n        <Link href="/mine" class="">\u6211\u7684</Link>\n    </div>', _this.components = { Link: _Link2.default }, _temp), _possibleConstructorReturn(_this, _ret);
+	        return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = Mine.__proto__ || Object.getPrototypeOf(Mine)).call.apply(_ref, [this].concat(args))), _this), _this.template = '<div id="page-mine">\n        <div class="avatar"></div>\n        <p>\u5343\u5E74\u5C38\u738B\u6BDB\u6DA6\u4E4B</p>\n        <p>\u8FD9\u662F\u4E00\u4E2A\u7B80\u5355\u7684App</p>\n        <Link href="/fuck" class="">404\u9875\u9762</Link>\n        <Link href="/" class="">\u53BB\u9996\u9875</Link>\n        <Link href="/mine" class="">\u6211\u7684</Link>\n    </div>', _this.components = { Link: _Link2.default }, _temp), _possibleConstructorReturn(_this, _ret);
 	    }
 
 	    return Mine;
@@ -1578,8 +1636,26 @@
 	            args[_key] = arguments[_key];
 	        }
 
-	        return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = Movies.__proto__ || Object.getPrototypeOf(Movies)).call.apply(_ref, [this].concat(args))), _this), _this.template = '<div id="movies">\n        <div v-for="item in list" class="item" style={\'background-image:url(\' + item.poster + \')\'} key={item.id}>\n            <p>{item.title}</p>\n        </div>\n    </div>', _this.data = {
+	        return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = Movies.__proto__ || Object.getPrototypeOf(Movies)).call.apply(_ref, [this].concat(args))), _this), _this.template = '<div id="movies">\n        <div v-for="item in list" class="item" style={\'background-image:url(\' + item.poster + \')\'}>\n            <p>{item.title}</p>\n        </div>\n    </div>', _this.data = {
 	            list: [{
+	                poster: 'http://ww1.sinaimg.cn/mw1024/61ca8acdgw1fbkgbck9wkj20go0b7gnq.jpg',
+	                title: 'i的 是的发生的的风格'
+	            }, {
+	                poster: 'http://ww1.sinaimg.cn/mw1024/61ca8acdgw1fbkgbck9wkj20go0b7gnq.jpg',
+	                title: 'i的 是的发生的的风格'
+	            }, {
+	                poster: 'http://ww1.sinaimg.cn/mw1024/61ca8acdgw1fbkgbck9wkj20go0b7gnq.jpg',
+	                title: 'i的 是的发生的的风格'
+	            }, {
+	                poster: 'http://ww1.sinaimg.cn/mw1024/61ca8acdgw1fbkgbck9wkj20go0b7gnq.jpg',
+	                title: 'i的 是的发生的的风格'
+	            }, {
+	                poster: 'http://ww1.sinaimg.cn/mw1024/61ca8acdgw1fbkgbck9wkj20go0b7gnq.jpg',
+	                title: 'i的 是的发生的的风格'
+	            }, {
+	                poster: 'http://ww1.sinaimg.cn/mw1024/61ca8acdgw1fbkgbck9wkj20go0b7gnq.jpg',
+	                title: 'i的 是的发生的的风格'
+	            }, {
 	                poster: 'http://ww1.sinaimg.cn/mw1024/61ca8acdgw1fbkgbck9wkj20go0b7gnq.jpg',
 	                title: 'i的 是的发生的的风格'
 	            }, {
@@ -1608,26 +1684,23 @@
 	    _createClass(Movies, [{
 	        key: 'componentDidMount',
 	        value: function componentDidMount() {
-	            var _this2 = this;
 
-	            window.addEventListener('scroll', function () {
-	                if (!_this2.listenScroll) return;
-	                if (document.body.scrollTop >= document.body.scrollHeight - window.innerHeight - 200) {
-	                    var _list;
-
-	                    var newList = [{
-	                        poster: 'http://ww1.sinaimg.cn/mw1024/61ca8acdgw1fbkgbck9wkj20go0b7gnq.jpg',
-	                        title: 'i的 是的发生的的风格'
-	                    }, {
-	                        poster: 'http://ww1.sinaimg.cn/mw1024/61ca8acdgw1fbkgbck9wkj20go0b7gnq.jpg',
-	                        title: 'i的 是的发生的的风格'
-	                    }, {
-	                        poster: 'http://ww1.sinaimg.cn/mw1024/61ca8acdgw1fbkgbck9wkj20go0b7gnq.jpg',
-	                        title: 'i的 是的发生的的风格'
-	                    }];
-	                    (_list = _this2.list).push.apply(_list, newList);
-	                }
-	            });
+	            // window.addEventListener('scroll', ()=>{
+	            //     if (!this.listenScroll) return
+	            //     if (document.body.scrollTop >= document.body.scrollHeight - window.innerHeight - 200) {
+	            //         let newList = [{
+	            //             poster: 'http://ww1.sinaimg.cn/mw1024/61ca8acdgw1fbkgbck9wkj20go0b7gnq.jpg',
+	            //             title: 'i的 是的发生的的风格'
+	            //         },{
+	            //             poster: 'http://ww1.sinaimg.cn/mw1024/61ca8acdgw1fbkgbck9wkj20go0b7gnq.jpg',
+	            //             title: 'i的 是的发生的的风格'
+	            //         },{
+	            //             poster: 'http://ww1.sinaimg.cn/mw1024/61ca8acdgw1fbkgbck9wkj20go0b7gnq.jpg',
+	            //             title: 'i的 是的发生的的风格'
+	            //         }]
+	            //         this.list.push(...newList)
+	            //     }
+	            // })
 	        }
 	    }, {
 	        key: 'componentDidUnMount',
